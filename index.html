@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>A JE MIRË? 2036 — Human Connection &amp; Wellbeing Intelligence</title>
+  <meta name="description" content="Sistem opt-in që mëson patternin tënd personal nga check-ins ditore dhe tregon kur diçka ndryshon krahasuar me ty vetë. Pa diagnozë, pa kamerë, pa server. KosICT 15 — Kosova 2036.">
+  <meta name="theme-color" content="#f5f7fb">
+  <meta name="color-scheme" content="light dark">
+
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="favicon.svg">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="A JE MIRË? 2036">
+  <meta property="og:title" content="A JE MIRË? 2036 — Human Connection &amp; Wellbeing Intelligence">
+  <meta property="og:description" content="Mëson patternin tënd personal nga 30 ditë check-in dhe tregon kur diçka ndryshon krahasuar me ty vetë — jo me askënd tjetër.">
+  <meta property="og:image" content="og.png">
+  <meta property="og:image:width" content="600">
+  <meta property="og:image:height" content="315">
+  <meta property="og:locale" content="sq_AL">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="A JE MIRË? 2036">
+  <meta name="twitter:description" content="Patterni yt. Vetëm i yti. Pa diagnozë, pa kamerë, pa server.">
+  <meta name="twitter:image" content="og.png">
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <a href="#screens" class="sr-only">Kalo te përmbajtja</a>
+
+  <!-- Ekrani 0: consent. Shfaqet i vetëm, pa guaskën e aplikacionit. -->
+  <div id="consent-view"></div>
+
+  <!-- Guaska e aplikacionit -->
+  <div class="app" id="shell" hidden>
+
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <span id="brand-mark"></span>
+        <div>
+          <div class="brand-name">A JE MIRË? 2036</div>
+          <div class="brand-sub">KosICT 15 · Kosova 2036</div>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="Navigimi kryesor"></nav>
+
+      <div class="sidebar-foot">
+        <div class="mode-badge" id="mode-badge"></div>
+        <button type="button" class="btn btn-sm btn-block" id="tour-button">Prezantim i udhëhequr</button>
+      </div>
+    </aside>
+
+    <div class="main-col">
+      <header class="topbar">
+        <h1 class="topbar-title" id="page-title">Kryefaqja</h1>
+        <div class="topbar-actions">
+          <button type="button" class="icon-btn" id="theme-button" aria-label="Ndërro temën"></button>
+          <button type="button" class="btn btn-sm" id="quick-checkin">Check-in</button>
+        </div>
+      </header>
+
+      <main id="screens"></main>
+    </div>
+
+    <nav class="bottomnav" id="bottomnav" aria-label="Navigimi i shpejtë"></nav>
+  </div>
+
+  <div id="toast-host" aria-hidden="false"></div>
+  <div id="tour-host"></div>
+  <div id="live-region" class="sr-only" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,171 @@
+import { METRICS, METRIC_RANGES } from './patterns.js';
+
+// E vetmja derë për të shkruar dhe lexuar në localStorage.
+// Gjithçka rri nën një çelës të vetëm.
+const STORAGE_KEY = 'ajemire.v1';
+export const MODEL_VERSION = 2;
+
+export function todayIso() {
+  return toIso(new Date());
+}
+
+export function toIso(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function loadProfile() {
+  let text = null;
+  try {
+    text = localStorage.getItem(STORAGE_KEY);
+  } catch (error) {
+    return null; // p.sh. dritare private ku ruajtja është e bllokuar
+  }
+  if (!text) return null;
+  try {
+    return migrate(JSON.parse(text));
+  } catch (error) {
+    // Nëse teksti është i prishur, e trajtojmë sikur të mos ekzistonte fare.
+    return null;
+  }
+}
+
+export function saveProfile(profile) {
+  // Kjo është e vetmja pikë ku shkruhet. Pa consent.store === true nuk shkruan asgjë,
+  // prandaj është e pamundur të ruhen të dhëna para se përdoruesi ta ndezë toggle-in.
+  if (!profile || !profile.consent || profile.consent.store !== true) return false;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+export function clearAll() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    // asgjë për të pastruar
+  }
+}
+
+export function exportToFile(profile) {
+  const blob = new Blob([JSON.stringify(profile, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `ajemire-${todayIso()}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+// Versioni 1 nuk kishte mode, connections, dismissed apo experiment.
+// Të dhënat e vjetra ruhen ashtu siç janë; vetëm fushat e reja shtohen.
+export function migrate(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const profile = { ...raw };
+  profile.version = MODEL_VERSION;
+  profile.mode = profile.mode === 'private' ? 'private' : 'demo';
+  profile.consent = profile.consent || { store: false, ai: false, acceptedAt: null };
+  profile.settings = {
+    baselineDays: 23,
+    recentDays: 7,
+    theme: 'auto',
+    ...(profile.settings || {})
+  };
+  profile.checkins = Array.isArray(profile.checkins) ? profile.checkins : [];
+  profile.my5 = (Array.isArray(profile.my5) ? profile.my5 : []).slice(0, 5).map((person, index) => ({
+    name: String(person.name || '').slice(0, 40),
+    relation: String(person.relation || '').slice(0, 40),
+    color: person.color || PERSON_COLORS[index % PERSON_COLORS.length],
+    lastReached: person.lastReached || null,
+    sharedActivity: person.sharedActivity || 'kafe'
+  }));
+  profile.connections = Array.isArray(profile.connections) ? profile.connections : [];
+  profile.dismissed = Array.isArray(profile.dismissed) ? profile.dismissed : [];
+  profile.experiment = profile.experiment || null;
+  return profile;
+}
+
+export const PERSON_COLORS = ['#0d9488', '#6f63d8', '#2b8fd0', '#c2683f', '#3f8f5a'];
+
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Kontrollon një fajll të importuar para se ta pranojë.
+ * Kthen { ok, errors, warnings, profile }.
+ */
+export function validateProfile(raw) {
+  const errors = [];
+  const warnings = [];
+
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return { ok: false, errors: ['Fajlli nuk përmban një objekt profili.'], warnings, profile: null };
+  }
+  if (!Array.isArray(raw.checkins)) {
+    return { ok: false, errors: ['Mungon lista "checkins".'], warnings, profile: null };
+  }
+
+  const seenDates = new Set();
+  const checkins = [];
+  raw.checkins.forEach((entry, index) => {
+    if (!entry || typeof entry !== 'object') {
+      warnings.push(`Rreshti ${index + 1} u anashkalua: nuk është objekt.`);
+      return;
+    }
+    if (!DATE_PATTERN.test(entry.date)) {
+      warnings.push(`Rreshti ${index + 1} u anashkalua: data "${entry.date}" nuk është në formatin VVVV-MM-DD.`);
+      return;
+    }
+    if (seenDates.has(entry.date)) {
+      warnings.push(`Data ${entry.date} ishte e dyfishtë; u mbajt vetëm e para.`);
+      return;
+    }
+    seenDates.add(entry.date);
+
+    const clean = { date: entry.date };
+    for (const metric of METRICS) {
+      const value = entry[metric];
+      const range = METRIC_RANGES[metric];
+      if (typeof value === 'number' && Number.isFinite(value) && value >= range.min && value <= range.max) {
+        clean[metric] = value;
+      } else if (value !== undefined && value !== null) {
+        // Vlera jashtë kufijve nuk bëhet zero — thjesht nuk merret.
+        warnings.push(`${entry.date}: "${metric}" jashtë kufijve, u lanë bosh.`);
+      }
+    }
+    clean.activities = Array.isArray(entry.activities)
+      ? entry.activities.filter(tag => typeof tag === 'string').map(tag => tag.slice(0, 24)).slice(0, 12)
+      : [];
+    clean.note = typeof entry.note === 'string' ? entry.note.slice(0, 500) : '';
+    checkins.push(clean);
+  });
+
+  if (checkins.length === 0) errors.push('Asnjë check-in i vlefshëm nuk u gjet në fajll.');
+  if (errors.length > 0) return { ok: false, errors, warnings, profile: null };
+
+  checkins.sort((left, right) => left.date.localeCompare(right.date));
+
+  const profile = migrate({
+    ...raw,
+    checkins,
+    // Një fajll i importuar janë të dhënat e vetë përdoruesit, përveç nëse thotë shprehimisht
+    // se është demo. Nuk duhet të etiketohet sintetik kur nuk është.
+    mode: raw.mode === 'demo' ? 'demo' : 'private',
+    consent: { store: true, ai: Boolean(raw.consent && raw.consent.ai), acceptedAt: new Date().toISOString() }
+  });
+  return { ok: true, errors, warnings, profile };
+}
+
+export function importFromText(text) {
+  try {
+    return validateProfile(JSON.parse(text));
+  } catch (error) {
+    return { ok: false, errors: ['Fajlli nuk është JSON i vlefshëm.'], warnings: [], profile: null };
+  }
+}

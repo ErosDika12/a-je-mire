@@ -1,0 +1,163 @@
+# A JE MIRË? 2036
+
+**Human Connection & Wellbeing Intelligence**
+KosICT 15 — Future Developers Corner — Kosova 2036
+
+Sistem opt-in që mëson se si duket një javë e zakonshme për ty, vëren kur patterni yt ndryshon,
+dhe të ndihmon të arrish një person që e ke zgjedhur vetë.
+
+Momenti qendror i produktit:
+
+> Sistemi nuk thotë "ti ke X".
+> Sistemi thotë "diçka ndryshoi krahasuar me patternin tënd normal" — dhe tregon faktorët e matshëm që lëvizën.
+
+---
+
+## Çfarë bën
+
+| Moduli | Çfarë tregon |
+|---|---|
+| **Consent** | Çfarë mblidhet, pse, ku ruhet. Dy toggle të ndarë. Asgjë nuk shkruhet para pranimit. |
+| **Kryefaqja** | Statusi i sotëm, progresi i baseline-it, trendi 7-ditor, ndryshimi kryesor, hapi i radhës. |
+| **Check-in** | Gjashtë rrëshqitës, tags aktivitetesh, shënim opsional. Një check-in për ditë. |
+| **My Normal** | Mesatarja jote nga 23 ditët bazë, me sparkline, linjë kohore dhe numrin e ditëve pas çdo numri. |
+| **Something Changed** | Cilat matje lëvizën, sa, dhe krahasimi vizual normale kundrejt tani. |
+| **Why?** | Korrelacione, lidhje me vonesë një ditë, mesatare me kusht, fjalët kryesore të shënimeve. |
+| **What Helps Me?** | Aktivitetet e renditura sipas provës në të dhënat e tua, plus reflektimi javor. |
+| **MY 5** | Deri në pesë persona të shkruar me dorë. Pa import kontaktesh, pa renditje sipas rëndësisë. |
+| **KAFE?** | Një hap i vogël social plus Message Composer me katër tone. |
+| **Connection Wall** | Harta e lidhjeve, historiku, dhe momentet nga check-ins. |
+| **Të dhënat e mia** | Përmbledhje, eksport, import me validim, rinisje, fshirje e plotë. |
+| **Prezantim i udhëhequr** | Shtatë ndalesa, dy deri tre minuta, me back, next dhe progres. |
+
+---
+
+## Çfarë NUK bën — kurrë
+
+- **Nuk vendos diagnozë.** Asnjë emër gjendjeje mjekësore nuk shfaqet askund: as në UI, as në kod, as në këtë README.
+- **Nuk përdor kamerë** dhe nuk lexon fytyra apo emocione. Nuk ka asnjë input vizual.
+- **Nuk dërgon asgjë automatikisht.** Maksimumi që bën është të përgatisë një draft dhe ta kopjojë në clipboard. Dërgimin e bën njeriu.
+- **Nuk shkruan asgjë pa consent.** `saveProfile()` te `js/storage.js` del pa bërë asgjë nëse `consent.store !== true`. Kjo është e vetmja rrugë shkrimi.
+- **Nuk përdor të dhëna reale.** Profili demo gjenerohet nga `js/seed.js` me farë fikse. Kjo shkruhet e dukshme në ekran.
+- **Nuk i çon të dhënat askund.** Pa server, pa llogari, pa analytics, pa API të jashtme, pa font të jashtëm.
+- **Nuk të krahason me persona të tjerë** dhe nuk pretendon se korrelacioni provon shkakun.
+
+---
+
+## Teknologjia
+
+HTML + CSS + JavaScript me ES modules. Pa framework, pa build step, pa npm, pa bundler, pa backend.
+Grafikat janë SVG i shkruar me dorë. CSS-ja është e shkruar me dorë, me variabla.
+
+```
+a-je-mire/
+├── index.html            guaska e aplikacionit, të gjitha ekranet
+├── 404.html              faqja e gabimit
+├── favicon.svg
+├── og.png                pamja e parë për rrjetet sociale
+├── css/style.css         tokenat e dizajnit, tema e çelët dhe e errët
+├── js/
+│   ├── app.js            router, guaska, navigimi
+│   ├── storage.js        lexo · ruaj · eksporto · importo · migro · fshij
+│   ├── seed.js           profili sintetik 30-ditor dhe profili privat bosh
+│   ├── stats.js          mean, std, movingAvg, pctChange, zScore, corr, normalize, trendDirection
+│   ├── patterns.js       myNormal, somethingChanged, correlations, whatHelpsMe, ...
+│   ├── nlp.js            tokenize, stopwords, fjalët kryesore nga shënimet
+│   ├── compose.js        reflektimi javor, draftet e mesazheve, sugjerimi i lidhjes
+│   ├── chart.js          scale, drawLine dhe grafikat SVG
+│   ├── ui.js             ikona, toast, temë, tooltip, modale
+│   ├── tour.js           prezantimi i udhëhequr
+│   └── screens/          njëmbëdhjetë ekrane, një fajll për secilin
+└── README.md
+```
+
+`stats.js` dhe `patterns.js` janë funksione të pastra: numra brenda, numra jashtë, asnjë prekje e DOM-it.
+
+---
+
+## Modeli i të dhënave
+
+Gjithçka rri nën një çelës të vetëm në `localStorage`: **`ajemire.v1`**.
+
+```json
+{
+  "version": 2,
+  "mode": "demo",
+  "consent": { "store": true, "ai": false, "acceptedAt": "2026-09-16T10:00:00Z" },
+  "settings": { "baselineDays": 23, "recentDays": 7, "theme": "auto" },
+  "checkins": [
+    { "date": "2026-08-18", "mood": 8, "sleep": 7.5, "energy": 7, "social": 6,
+      "joy": 7, "load": 4, "activities": ["basketboll", "shoket"], "note": "tekst i lirë" }
+  ],
+  "my5": [
+    { "name": "Arta", "relation": "kushërirë", "color": "#6f63d8",
+      "lastReached": "2026-09-02", "sharedActivity": "kafe" }
+  ],
+  "connections": [{ "date": "2026-09-02", "personName": "Arta", "activityKey": "kafe" }],
+  "dismissed": [{ "date": "2026-09-16", "key": "Arta|kafe" }],
+  "experiment": null
+}
+```
+
+Profilet e versionit 1 migrohen automatikisht: fushat e reja shtohen, asnjë check-in nuk humbet.
+
+`load` është e vetmja metrikë e përmbysur — më shumë ngarkesë do të thotë më keq. Drejtimi ruhet
+në një konstante të vetme dhe përdoret kudo:
+
+```js
+const WORSE = { mood: -1, sleep: -1, energy: -1, social: -1, joy: -1, load: +1 };
+```
+
+---
+
+## Llogaritjet
+
+**My Normal** — mesatarja e secilës metrikë gjatë ditëve bazë. Periudha e fundit janë 7 ditët e fundit;
+baseline-i janë deri në 23 ditët para saj. Për profilin 30-ditor kjo jep saktësisht ditët 1–23 dhe 24–30.
+
+**Something Changed**
+
+```
+recent = mesatarja e 7 ditëve të fundit
+base   = mesatarja e 23 ditëve bazë
+pct    = (recent - base) / base * 100
+z      = (recent - base) / devijimi standard i base-it
+```
+
+Një metrikë shënohet **nëse** lëvizi në drejtimin e keq për atë metrikë (sipas `WORSE`)
+**dhe** `|pct| >= 15` ose `|z| >= 1.5`.
+Sinjali shfaqet vetëm kur janë shënuar **dy ose më shumë** metrika — një faktor i vetëm është zhurmë.
+
+**Why?** — korrelacion Pearson mes çdo çifti metrikash, korrelacion me vonesë (dita N kundrejt ditës N+1),
+dhe mesatare me kusht: "në ditët ku gjumi dhe lidhja ishin mbi normalen tënde, humori mesatar ishte X kundrejt Y".
+
+**What Helps Me?** — për çdo tag, mesatarja e metrikës në ditët me atë tag minus mesatarja në ditët pa të.
+Minimumi 3 ditë me dhe 3 ditë pa, para se të shfaqet. Numri i ditëve tregohet gjithmonë pranë rezultatit.
+
+**Trajtimi i të dhënave që mungojnë** — një ditë pa vlerë nuk bëhet kurrë zero; thjesht nuk numërohet.
+Pjesëtimi me zero kthen `null`, jo `Infinity`. Çdo modul ka një prag minimal ditësh dhe nën atë prag
+tregon gjendje të ndershme "ende nuk mjaftojnë ditët" në vend që të shpikë një përfundim.
+
+---
+
+## Si ta xhirosh
+
+Hape `index.html` me Live Server (ose çfarëdo serveri statik). ES modules nuk punojnë me `file://`.
+
+```bash
+python -m http.server 8123
+```
+
+Funksionet e llogaritjes mund të provohen nga Console:
+
+```js
+AJM.stats.mean([2, 4, 6])                 // 4
+AJM.stats.std([2, 4, 6])                  // 1.6329931618554523
+AJM.stats.movingAvg([1, 2, 3, 4], 3)      // [null, null, 2, 3]
+AJM.stats.corr([1, 2, 3], [2, 4, 6])      // 1
+AJM.patterns.somethingChanged(AJM.app.profile.checkins, AJM.app.profile.settings)
+```
+
+## Deploy
+
+Static site në Vercel, pa build command. Çdo fajll shërbehet ashtu siç është.
