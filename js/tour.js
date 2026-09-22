@@ -1,5 +1,5 @@
 import { icon } from './ui.js';
-import { escapeHtml } from './chart.js';
+import { escapeHtml } from './format.js';
 
 // Prezantimi i udhëhequr: shtatë ndalesa, dy deri tre minuta.
 const STEPS = [

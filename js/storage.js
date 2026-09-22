@@ -16,18 +16,24 @@ export function toIso(date) {
   return `${year}-${month}-${day}`;
 }
 
+// Kur të dhënat e ruajtura nuk lexohen dot, e shënojmë këtu që ndërfaqja
+// të shfaqë një mesazh të qetë në vend të një gabimi teknik.
+export let lastLoadProblem = null;
+
 export function loadProfile() {
+  lastLoadProblem = null;
   let text = null;
   try {
     text = localStorage.getItem(STORAGE_KEY);
   } catch (error) {
-    return null; // p.sh. dritare private ku ruajtja është e bllokuar
+    lastLoadProblem = 'blocked'; // p.sh. dritare private ku ruajtja është e bllokuar
+    return null;
   }
   if (!text) return null;
   try {
     return migrate(JSON.parse(text));
   } catch (error) {
-    // Nëse teksti është i prishur, e trajtojmë sikur të mos ekzistonte fare.
+    lastLoadProblem = 'unreadable';
     return null;
   }
 }
@@ -52,16 +58,39 @@ export function clearAll() {
   }
 }
 
+// Kthen true kur shkarkimi nisi, false kur shfletuesi e pengoi.
 export function exportToFile(profile) {
-  const blob = new Blob([JSON.stringify(profile, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `ajemire-${todayIso()}.json`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  try {
+    const blob = new Blob([JSON.stringify(profile, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `ajemire-${todayIso()}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+// Check-ins të ruajtura: pa rreshta të prishur, pa data të dyfishta, të renditura.
+// Nëse një datë shfaqet dy herë, mbahet e fundit — ashtu si mbishkruan check-in-i.
+function cleanCheckins(list) {
+  const byDate = new Map();
+  for (const entry of Array.isArray(list) ? list : []) {
+    if (!entry || typeof entry !== 'object' || !DATE_PATTERN.test(entry.date)) continue;
+    const clean = { date: entry.date };
+    for (const metric of METRICS) {
+      if (typeof entry[metric] === 'number' && Number.isFinite(entry[metric])) clean[metric] = entry[metric];
+    }
+    clean.activities = Array.isArray(entry.activities) ? entry.activities.filter(tag => typeof tag === 'string') : [];
+    clean.note = typeof entry.note === 'string' ? entry.note : '';
+    byDate.set(entry.date, clean);
+  }
+  return [...byDate.values()].sort((left, right) => left.date.localeCompare(right.date));
 }
 
 // Versioni 1 nuk kishte mode, connections, dismissed apo experiment.
@@ -78,21 +107,25 @@ export function migrate(raw) {
     theme: 'auto',
     ...(profile.settings || {})
   };
-  profile.checkins = Array.isArray(profile.checkins) ? profile.checkins : [];
-  profile.my5 = (Array.isArray(profile.my5) ? profile.my5 : []).slice(0, 5).map((person, index) => ({
+  profile.checkins = cleanCheckins(profile.checkins);
+  profile.my5 = (Array.isArray(profile.my5) ? profile.my5 : [])
+    .filter(person => person && typeof person === 'object' && String(person.name || '').trim() !== '')
+    .slice(0, 5).map((person, index) => ({
     name: String(person.name || '').slice(0, 40),
     relation: String(person.relation || '').slice(0, 40),
     color: person.color || PERSON_COLORS[index % PERSON_COLORS.length],
     lastReached: person.lastReached || null,
     sharedActivity: person.sharedActivity || 'kafe'
   }));
-  profile.connections = Array.isArray(profile.connections) ? profile.connections : [];
+  profile.connections = (Array.isArray(profile.connections) ? profile.connections : [])
+    .filter(item => item && DATE_PATTERN.test(item.date) && typeof item.personName === 'string');
   profile.dismissed = Array.isArray(profile.dismissed) ? profile.dismissed : [];
   profile.experiment = profile.experiment || null;
   return profile;
 }
 
-export const PERSON_COLORS = ['#0d9488', '#6f63d8', '#2b8fd0', '#c2683f', '#3f8f5a'];
+// Ngjyra mjaft të errëta që inicialet e bardha të lexohen qartë.
+export const PERSON_COLORS = ['#0f766e', '#5a52c2', '#2672ad', '#a8581a', '#3b7d52'];
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 

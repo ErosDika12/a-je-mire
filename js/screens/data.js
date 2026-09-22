@@ -1,5 +1,5 @@
-import { icon, toast, openModal, closeLayer, formatDateLong } from '../ui.js';
-import { escapeHtml } from '../chart.js';
+import { icon, toast, openModal, closeLayer } from '../ui.js';
+import { escapeHtml, formatDateLong } from '../format.js';
 import { exportToFile, importFromText } from '../storage.js';
 import { allTags } from '../patterns.js';
 
@@ -103,8 +103,8 @@ function confirmDialog(title, body, confirmLabel, onConfirm) {
 
 function wire(container, app) {
   container.querySelector('[data-export]').addEventListener('click', () => {
-    exportToFile(app.profile);
-    toast('Fajlli u shkarkua', 'ok');
+    const started = exportToFile(app.profile);
+    toast(started ? 'Fajlli u shkarkua' : 'Shfletuesi nuk e lejoi shkarkimin', started ? 'ok' : 'err');
   });
 
   const fileInput = container.querySelector('#import-file');

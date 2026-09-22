@@ -1,5 +1,5 @@
-import { icon, toast, formatDateLong } from '../ui.js';
-import { escapeHtml } from '../chart.js';
+import { icon, metricIcon, toast } from '../ui.js';
+import { escapeHtml, formatWeekday } from '../format.js';
 import {
   METRICS, METRIC_LABELS, METRIC_UNITS, METRIC_ENDS, METRIC_RANGES,
   SUGGESTED_TAGS, allTags, tagLabel
@@ -10,7 +10,7 @@ const DEFAULTS = { mood: 6, sleep: 7.5, energy: 6, social: 6, joy: 6, load: 5 };
 export function renderCheckin(container, app) {
   const profile = app.profile;
   const existing = profile.checkins.find(entry => entry.date === app.today) || null;
-  const values = existing || DEFAULTS;
+  const values = { ...DEFAULTS, ...(existing || {}) };
   const chosen = existing ? [...(existing.activities || [])] : [];
 
   container.innerHTML = markup(app.today, values, tagChoices(profile), chosen, existing);
@@ -19,64 +19,65 @@ export function renderCheckin(container, app) {
 
   wireSliders(container);
   wireTags(container, chosen);
-  container.querySelector('#checkin-save')
-    .addEventListener('click', () => save(container, app, chosen));
+  container.querySelector('#checkin-save').addEventListener('click', () => save(container, app, chosen));
 }
 
 function tagChoices(profile) {
-  const used = allTags(profile.checkins);
-  return [...new Set([...SUGGESTED_TAGS, ...used])];
+  return [...new Set([...SUGGESTED_TAGS, ...allTags(profile.checkins)])];
 }
 
 function markup(today, values, tags, chosen, existing) {
   return `
     <header class="page-head">
-      <h1 class="page-title">Check-in</h1>
-      <p class="page-sub">Gjashtë rrëshqitës për ${formatDateLong(today)}. Nën njëzet sekonda.</p>
-      ${existing ? `<p class="pill pill-accent pill-wrap" style="margin-top:var(--s3)">${icon('info', 13)} <span>Ke një check-in të ruajtur sot — ruajtja e re e zëvendëson</span></p>` : ''}
+      <span class="eyebrow">${escapeHtml(formatWeekday(today))}</span>
+      <h1 class="page-title mt-2">Check-in</h1>
+      <p class="page-sub">Gjashtë rrëshqitës. Plotësohet për më pak se 20 sekonda.</p>
+      ${existing ? `<p class="pill pill-accent pill-wrap mt-3">${icon('info', 13)}<span>Ke një check-in të ruajtur sot. Ruajtja e re e zëvendëson të njëjtën ditë.</span></p>` : ''}
     </header>
 
-    <section class="card">
-      <div class="card-head"><div>
-        <h2 class="card-title">Si ishte dita</h2>
-        <p class="card-sub">Lëviz me gisht, me mi, ose me shigjetat e tastierës</p>
-      </div></div>
-      ${METRICS.map(metric => sliderMarkup(metric, values[metric])).join('')}
-    </section>
+    <div class="g-12">
+      <section class="card card-accent span-7" aria-labelledby="sliders-title">
+        <span class="eyebrow">Gjashtë matjet</span>
+        <h2 class="card-title" id="sliders-title">Si ishte dita</h2>
+        <p class="card-sub">Me gisht, me mi ose me shigjetat e tastierës.</p>
+        <div class="mt-4">${METRICS.map(metric => sliderMarkup(metric, values[metric])).join('')}</div>
+      </section>
 
-    <section class="card" style="margin-top:var(--s4)">
-      <div class="card-head"><div>
-        <h2 class="card-title">Aktivitetet e sotme</h2>
-        <p class="card-sub">Zgjidh sa të duash. Këto përdoren te "What Helps Me?"</p>
-      </div></div>
-      <div class="tag-wrap" id="checkin-tags">
-        ${tags.map(tag => tagMarkup(tag, chosen.includes(tag))).join('')}
+      <div class="span-5 stack">
+        <section class="card" aria-labelledby="tags-title">
+          <span class="eyebrow">Opsionale</span>
+          <h2 class="card-title" id="tags-title">Aktivitetet e sotme</h2>
+          <p class="card-sub">Përdoren te What Helps Me?</p>
+          <div class="tag-wrap mt-4" id="checkin-tags">${tags.map(tag => tagMarkup(tag, chosen.includes(tag))).join('')}</div>
+          <div class="field mt-4">
+            <label for="new-tag">Shto aktivitet tëndin</label>
+            <div class="row" style="flex-wrap:nowrap;gap:var(--s2)">
+              <input type="text" id="new-tag" maxlength="24" placeholder="p.sh. kitarë" autocomplete="off" enterkeyhint="done">
+              <button type="button" class="icon-btn" id="add-tag" aria-label="Shto aktivitetin">${icon('plus', 18)}</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel" aria-labelledby="note-title">
+          <span class="eyebrow">Opsionale</span>
+          <h2 class="card-title" id="note-title"><label for="checkin-note">Shënim</label></h2>
+          <p class="card-sub">Mbetet në këtë pajisje. Përdoret vetëm për fjalët kryesore.</p>
+          <textarea id="checkin-note" class="mt-3" maxlength="300" rows="3" placeholder="Çfarë ndodhi sot?"></textarea>
+        </section>
       </div>
-      <div class="field" style="margin-top:var(--s4)">
-        <label for="new-tag">Shto aktivitet tëndin</label>
-        <div class="row" style="flex-wrap:nowrap;gap:var(--s2)">
-          <input type="text" id="new-tag" maxlength="24" placeholder="p.sh. not, kitarë, vullnetarizëm"
-                 autocomplete="off" enterkeyhint="done">
-          <button type="button" class="btn" id="add-tag">${icon('plus', 16)}<span class="sr-only">Shto aktivitetin</span></button>
-        </div>
-      </div>
-    </section>
+    </div>
 
-    <section class="card" style="margin-top:var(--s4)">
-      <div class="card-head"><div>
-        <h2 class="card-title">Shënim, nëse do</h2>
-        <p class="card-sub">Opsional. Përdoret vetëm për fjalët kryesore, lokalisht.</p>
-      </div></div>
-      <label class="sr-only" for="checkin-note">Shënimi i ditës</label>
-      <textarea id="checkin-note" maxlength="300" rows="3" placeholder="Çfarë ndodhi sot?"></textarea>
-    </section>
-
-    <div class="row-between" style="margin-top:var(--s5)">
+    <div class="row-between mt-5">
       <p class="status" id="checkin-status" role="status" aria-live="polite"></p>
       <button type="button" class="btn btn-primary" id="checkin-save">
-        ${icon('check', 16)} ${existing ? 'Përditëso check-in-in' : 'Ruaj check-in-in'}
+        ${icon('check', 16)} <span>${existing ? 'Përditëso check-in' : 'Ruaj check-in'}</span>
       </button>
     </div>`;
+}
+
+function fillPercent(metric, value) {
+  const range = METRIC_RANGES[metric];
+  return `${(((value - range.min) / (range.max - range.min)) * 100).toFixed(1)}%`;
 }
 
 function sliderMarkup(metric, value) {
@@ -84,13 +85,14 @@ function sliderMarkup(metric, value) {
   const ends = METRIC_ENDS[metric];
   return `<div class="slider-card">
     <div class="slider-top">
+      ${metricIcon(metric)}
       <label class="slider-name" for="slider-${metric}">${METRIC_LABELS[metric]}</label>
       <span class="slider-read">
         <output class="slider-val" id="out-${metric}" for="slider-${metric}">${value}</output>
         <span class="slider-unit">${METRIC_UNITS[metric]}</span>
       </span>
     </div>
-    <input type="range" id="slider-${metric}" data-metric="${metric}"
+    <input type="range" id="slider-${metric}" data-metric="${metric}" style="--fill:${fillPercent(metric, value)}"
            min="${range.min}" max="${range.max}" step="${range.step}" value="${value}"
            aria-describedby="ends-${metric}" aria-valuetext="${value} ${METRIC_UNITS[metric]}">
     <div class="slider-ends" id="ends-${metric}">
@@ -109,6 +111,7 @@ function wireSliders(container) {
     const output = container.querySelector('#out-' + metric);
     slider.addEventListener('input', () => {
       output.textContent = slider.value;
+      slider.style.setProperty('--fill', fillPercent(metric, Number(slider.value)));
       slider.setAttribute('aria-valuetext', `${slider.value} ${METRIC_UNITS[metric]}`);
     });
   }
@@ -126,28 +129,22 @@ function wireTags(container, chosen) {
   });
 
   const field = container.querySelector('#new-tag');
-  const addButton = container.querySelector('#add-tag');
   const add = () => addTag(field, list, chosen);
-  addButton.addEventListener('click', add);
+  container.querySelector('#add-tag').addEventListener('click', add);
   field.addEventListener('keydown', event => {
     if (event.key === 'Enter') { event.preventDefault(); add(); }
   });
 }
 
 function addTag(field, list, chosen) {
-  const tag = field.value.trim().toLowerCase();
+  const tag = field.value.trim().toLowerCase().slice(0, 24);
   field.value = '';
   if (tag === '') return;
   // Krahasoj tekstin e ruajtur, jo me selektor, që thonjëzat të mos e prishin kërkimin.
   const existing = [...list.querySelectorAll('.tag')].find(button => button.dataset.tag === tag);
-  if (existing) {
-    if (!chosen.includes(tag)) chosen.push(tag);
-    existing.setAttribute('aria-pressed', 'true');
-    existing.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    return;
-  }
-  chosen.push(tag);
-  list.insertAdjacentHTML('beforeend', tagMarkup(tag, true));
+  if (!chosen.includes(tag)) chosen.push(tag);
+  if (existing) existing.setAttribute('aria-pressed', 'true');
+  else list.insertAdjacentHTML('beforeend', tagMarkup(tag, true));
 }
 
 function save(container, app, chosen) {
@@ -165,9 +162,17 @@ function save(container, app, chosen) {
   if (isNew) checkins.push(entry); else checkins[index] = entry;
   checkins.sort((left, right) => left.date.localeCompare(right.date));
 
-  app.save();
-  container.querySelector('#checkin-status').textContent =
-    isNew ? `U ruajt. Tani ke ${checkins.length} ditë.` : 'Check-in-i i sotëm u përditësua.';
-  toast(isNew ? 'Check-in-i u ruajt' : 'Check-in-i u përditësua', 'ok');
-  app.refreshShell();
+  const stored = app.save();
+  const button = container.querySelector('#checkin-save');
+  button.classList.add('is-done');
+  button.querySelector('span').textContent = isNew ? 'U ruajt' : 'U përditësua';
+  setTimeout(() => {
+    button.classList.remove('is-done');
+    button.querySelector('span').textContent = 'Përditëso check-in';
+  }, 1600);
+
+  container.querySelector('#checkin-status').textContent = stored
+    ? (isNew ? `Check-in-i u ruajt. Gjithsej ${checkins.length} ditë.` : 'Check-in-i i sotëm u përditësua.')
+    : 'Check-in-i u regjistrua për këtë sesion, por pajisja nuk lejoi ruajtjen.';
+  toast(stored ? (isNew ? 'Check-in-i u ruajt' : 'Check-in-i u përditësua') : 'Pajisja nuk lejoi ruajtjen', stored ? 'ok' : 'err');
 }

@@ -9,6 +9,7 @@ import { renderCheckin } from './screens/checkin.js';
 import { renderNormal } from './screens/normal.js';
 import { renderChanged } from './screens/changed.js';
 import { renderWhy } from './screens/why.js';
+import { renderPatterns } from './screens/patterns.js';
 import { renderHelps } from './screens/helps.js';
 import { renderMy5 } from './screens/my5.js';
 import { renderKafe } from './screens/kafe.js';
@@ -19,15 +20,16 @@ import * as stats from './stats.js';
 import * as patterns from './patterns.js';
 
 const SCREENS = [
-  { id: 'dashboard', label: 'Kryefaqja',          icon: 'home',     group: 'Ti',          render: renderDashboard, primary: true },
+  { id: 'dashboard', label: 'Sot',                icon: 'today',    group: 'Ti',          render: renderDashboard, primary: true },
   { id: 'checkin',   label: 'Check-in',           icon: 'check',    group: 'Ti',          render: renderCheckin,   primary: true },
-  { id: 'normal',    label: 'My Normal',          icon: 'pulse',    group: 'Patternat',   render: renderNormal,    primary: true },
+  { id: 'normal',    label: 'My Normal',          icon: 'normal',   group: 'Patternat',   render: renderNormal,    primary: true },
   { id: 'changed',   label: 'Something Changed',  icon: 'shift',    group: 'Patternat',   render: renderChanged,   primary: true },
   { id: 'why',       label: 'Why?',               icon: 'why',      group: 'Patternat',   render: renderWhy },
+  { id: 'patterns',  label: 'Patterns',           icon: 'patterns', group: 'Patternat',   render: renderPatterns },
   { id: 'helps',     label: 'What Helps Me?',     icon: 'spark',    group: 'Patternat',   render: renderHelps },
   { id: 'my5',       label: 'MY 5',               icon: 'users',    group: 'Lidhjet',     render: renderMy5 },
   { id: 'kafe',      label: 'KAFE?',              icon: 'coffee',   group: 'Lidhjet',     render: renderKafe },
-  { id: 'wall',      label: 'Connection Wall',    icon: 'network',  group: 'Lidhjet',     render: renderWall },
+  { id: 'wall',      label: 'Connection Wall',    icon: 'connect',  group: 'Lidhjet',     render: renderWall },
   { id: 'data',      label: 'Të dhënat e mia',    icon: 'database', group: 'Privatësia',  render: renderData }
 ];
 
@@ -49,6 +51,7 @@ const app = {
   resetToPrivate,
   replaceProfile,
   refreshShell,
+  rerender: () => goTo(current),
   startTour: () => startTour(app)
 };
 
@@ -104,7 +107,7 @@ function buildShell() {
 }
 
 function shortLabel(label) {
-  const map = { 'Kryefaqja': 'Kryefaqja', 'Check-in': 'Check-in', 'My Normal': 'Normal', 'Something Changed': 'Changed' };
+  const map = { 'Sot': 'Sot', 'Check-in': 'Check-in', 'My Normal': 'Normalja', 'Something Changed': 'Changed' };
   return map[label] || label;
 }
 
@@ -141,9 +144,6 @@ function goTo(name) {
   const host = document.getElementById('screen-' + screen.id);
   host.innerHTML = '';
   screen.render(host, app);
-  host.classList.remove('screen-enter');
-  void host.offsetWidth;
-  host.classList.add('screen-enter');
 
   document.getElementById('page-title').textContent = screen.label;
   document.title = `${screen.label} · A JE MIRË? 2036`;
@@ -158,6 +158,12 @@ function goTo(name) {
   drawTourBar();
 }
 
+// Çdo buton me data-go në ekrane lundron vetë, pa pasur nevojë që çdo ekran ta lidhë.
+document.getElementById('screens').addEventListener('click', event => {
+  const target = event.target.closest('[data-go]');
+  if (target) goTo(target.dataset.go);
+});
+
 window.addEventListener('hashchange', () => {
   if (navigating || !app.profile) return;
   const name = location.hash.replace('#/', '');
@@ -167,8 +173,9 @@ window.addEventListener('hashchange', () => {
 // ---------- gjendja ----------
 
 function save() {
-  saveProfile(app.profile);
+  const stored = saveProfile(app.profile);
   refreshShell();
+  return stored;
 }
 
 function refreshShell() {

@@ -1,16 +1,18 @@
 // Grafika SVG të shkruara me dorë. Pa librari.
-// Çdo funksion kthen një varg HTML; vizatimi ndodh te ekranet.
-// Të gjitha SVG-të ruajnë raportin e faqeve, prandaj një raport i vetëm
-// (gjerësia e dukshme / gjerësia e viewBox-it) mjafton për të vendosur tooltip-in.
+// Çdo funksion kthen HTML si tekst; ekranet e vendosin në faqe.
+// Pikat që kanë tooltip mbajnë data-tip, data-x dhe data-y në koordinatat e viewBox-it.
 
 import { clean } from './stats.js';
+import {
+  escapeHtml, fmtNum, fmtValue, formatDateLong, formatDateShort, initials, truncate
+} from './format.js';
 
 export function scale(value, fromLow, fromHigh, toLow, toHigh) {
   if (fromHigh === fromLow) return (toLow + toHigh) / 2;
   return toLow + (value - fromLow) / (fromHigh - fromLow) * (toHigh - toLow);
 }
 
-// Ndan pikat në segmente aty ku mungon një ditë, që vija të mos kërcejë mbi boshllëk.
+// Ndan pikat në segmente aty ku mungon një vlerë, që vija të mos kërcejë mbi boshllëk.
 function segments(points) {
   const result = [];
   let current = [];
@@ -32,90 +34,122 @@ export function drawLine(points) {
     .join(' ');
 }
 
-function pathLength(points) {
-  let total = 0;
-  for (const group of segments(points)) {
-    for (let index = 1; index < group.length; index++) {
-      total += Math.hypot(group[index].x - group[index - 1].x, group[index].y - group[index - 1].y);
-    }
-  }
-  return Math.max(1, Math.round(total));
+// Katër shenja të barabarta nga minimumi te maksimumi i shkallës: 1·4·7·10 ose 3·6·9·12.
+function ticksFor(range) {
+  const step = (range.max - range.min) / 3;
+  return [0, 1, 2, 3].map(index => range.min + step * index);
 }
+
+/* ---------- grafiku i My Normal ---------- */
 
 /**
- * Grafiku i trendit: vija kryesore, ditët e fundit me ngjyrë tjetër,
- * vija e ndërprerë në nivelin e baseline-it.
+ * Një metrikë për 30 ditë: vija ditore me pika, mesatarja lëvizëse 7-ditore,
+ * brezi i baseline-it (mesatarja ± devijimi), vija e saktë e mesatares
+ * dhe zona e 7 ditëve të fundit. Boshti Y është gjithmonë shkalla e plotë e
+ * metrikës, që ndryshimet të mos duken më të mëdha se ç'janë.
  */
-export function trendChart(config) {
-  const values = config.values;
-  const dates = config.dates || [];
-  const recentCount = config.recentCount || 0;
-  const baseline = Number.isFinite(config.baseline) ? config.baseline : null;
-  const unit = config.unit || '';
-  const width = 600;
-  const height = config.height || 180;
-  const pad = { top: 14, right: 10, bottom: 24, left: 34 };
-  const innerWidth = width - pad.left - pad.right;
-  const innerHeight = height - pad.top - pad.bottom;
+export function metricChart(config) {
+  const width = Math.max(280, Math.round(config.width));
+  const height = Math.round(Math.min(320, Math.max(240, width * 0.46)));
+  const frame = {
+    width, height,
+    left: 52, right: width - 14, top: 16, bottom: height - 46,
+    count: config.values.length,
+    range: config.range
+  };
+  if (clean(config.values).length < 2) return '';
 
-  const real = clean(values);
-  if (real.length < 2) return '';
+  const x = index => (frame.count === 1
+    ? (frame.left + frame.right) / 2
+    : scale(index, 0, frame.count - 1, frame.left, frame.right));
+  const y = value => scale(value, frame.range.min, frame.range.max, frame.bottom, frame.top);
 
-  let low = Math.min(...real, baseline === null ? Infinity : baseline);
-  let high = Math.max(...real, baseline === null ? -Infinity : baseline);
-  const margin = (high - low) * 0.18 || 0.5;
-  low -= margin;
-  high += margin;
-
-  const points = values.map((value, index) => (
-    Number.isFinite(value)
-      ? {
-          x: scale(index, 0, Math.max(1, values.length - 1), pad.left, pad.left + innerWidth),
-          y: scale(value, low, high, pad.top + innerHeight, pad.top),
-          value,
-          index
-        }
-      : null
-  ));
-
-  const splitIndex = Math.max(1, values.length - recentCount);
-  const basePoints = points.slice(0, splitIndex);
-  const recentPoints = recentCount > 0 ? points.slice(splitIndex - 1) : [];
-
-  const gridLines = [0, 0.5, 1].map(ratio => {
-    const y = pad.top + innerHeight * ratio;
-    const label = high - (high - low) * ratio;
-    return `<line class="grid-line" x1="${pad.left}" y1="${y.toFixed(1)}" x2="${width - pad.right}" y2="${y.toFixed(1)}"/>`
-      + `<text class="axis-text" x="${pad.left - 6}" y="${(y + 3).toFixed(1)}" text-anchor="end">${label.toFixed(1)}</text>`;
-  }).join('');
-
-  let baseLine = '';
-  if (baseline !== null) {
-    const y = scale(baseline, low, high, pad.top + innerHeight, pad.top).toFixed(1);
-    baseLine = `<line class="line-base" x1="${pad.left}" y1="${y}" x2="${width - pad.right}" y2="${y}"/>`;
-  }
-
-  const bandWidth = innerWidth / Math.max(1, values.length - 1);
-  const hits = points.filter(Boolean).map(point => {
-    const tip = `${shortDate(dates[point.index])} · ${point.value}${unit ? ' ' + unit : ''}`;
-    return `<g><circle class="dot-mark" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="4"/>`
-      + `<rect class="dot-hit" x="${(point.x - bandWidth / 2).toFixed(1)}" y="${pad.top}" width="${bandWidth.toFixed(1)}" height="${innerHeight}"`
-      + ` data-tip="${escapeHtml(tip)}" data-x="${point.x.toFixed(1)}" data-y="${point.y.toFixed(1)}"></rect></g>`;
-  }).join('');
+  const body = [
+    chartAxes(frame, config, x, y),
+    baselineBand(frame, config, y),
+    recentZone(frame, config, x),
+    seriesLines(config, x, y),
+    seriesPoints(config, x, y)
+  ].join('');
 
   return `<div class="chart-wrap">
-    <svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(config.alt || 'Grafik trendi')}">
-      <title>${escapeHtml(config.alt || 'Grafik trendi')}</title>
-      ${gridLines}${baseLine}
-      <path class="line-main draw-in" style="--len:${pathLength(basePoints)}" d="${drawLine(basePoints)}"/>
-      ${recentPoints.length ? `<path class="line-recent draw-in" style="--len:${pathLength(recentPoints)}" d="${drawLine(recentPoints)}"/>` : ''}
-      ${hits}
-      <text class="axis-text" x="${pad.left}" y="${height - 6}">${shortDate(dates[0])}</text>
-      <text class="axis-text" x="${width - pad.right}" y="${height - 6}" text-anchor="end">${shortDate(dates[dates.length - 1])}</text>
+    <svg class="chart" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}"
+         role="img" tabindex="0" aria-label="${escapeHtml(config.alt)}" aria-describedby="${config.summaryId}">
+      <title>${escapeHtml(config.alt)}</title>${body}
     </svg>
-    <div class="chart-tip" role="status" aria-live="polite"></div>
+    <div class="chart-tip" aria-hidden="true"></div>
   </div>`;
 }
+
+function chartAxes(frame, config, x, y) {
+  const yTicks = ticksFor(frame.range).map(value => {
+    const ty = y(value).toFixed(1);
+    return `<line class="grid-line" x1="${frame.left}" y1="${ty}" x2="${frame.right}" y2="${ty}"/>
+      <text class="axis-text" x="${frame.left - 8}" y="${(y(value) + 4).toFixed(1)}" text-anchor="end">${fmtValue(value)}</text>`;
+  }).join('');
+
+  const last = frame.count - 1;
+  const xIndexes = [...new Set([0, Math.round(last / 3), Math.round((2 * last) / 3), last])];
+  const xTicks = xIndexes.map(index => `
+    <line class="axis-line" x1="${x(index).toFixed(1)}" y1="${frame.bottom}" x2="${x(index).toFixed(1)}" y2="${frame.bottom + 5}"/>
+    <text class="axis-text" x="${x(index).toFixed(1)}" y="${frame.bottom + 18}"
+          text-anchor="${index === 0 ? 'start' : index === last ? 'end' : 'middle'}">${escapeHtml(formatDateShort(config.dates[index]))}</text>`).join('');
+
+  const middleY = ((frame.top + frame.bottom) / 2).toFixed(1);
+  return `${yTicks}${xTicks}
+    <line class="axis-line" x1="${frame.left}" y1="${frame.bottom}" x2="${frame.right}" y2="${frame.bottom}"/>
+    <line class="axis-line" x1="${frame.left}" y1="${frame.top}" x2="${frame.left}" y2="${frame.bottom}"/>
+    <text class="axis-title" x="14" y="${middleY}" text-anchor="middle" transform="rotate(-90 14 ${middleY})">${escapeHtml(config.yTitle)}</text>
+    <text class="axis-title" x="${((frame.left + frame.right) / 2).toFixed(1)}" y="${frame.height - 6}" text-anchor="middle">Data</text>`;
+}
+
+function baselineBand(frame, config, y) {
+  if (!Number.isFinite(config.baseMean)) return '';
+  const spread = Number.isFinite(config.baseStd) ? config.baseStd : 0;
+  const top = y(Math.min(frame.range.max, config.baseMean + spread));
+  const bottom = y(Math.max(frame.range.min, config.baseMean - spread));
+  const lineY = y(config.baseMean).toFixed(1);
+  return `<rect class="band-base" x="${frame.left}" y="${top.toFixed(1)}" width="${frame.right - frame.left}" height="${Math.max(1, bottom - top).toFixed(1)}"/>
+    <line class="line-base" x1="${frame.left}" y1="${lineY}" x2="${frame.right}" y2="${lineY}"/>`;
+}
+
+function recentZone(frame, config, x) {
+  const recent = config.recentCount;
+  if (!recent || frame.count <= recent) return '';
+  const firstRecent = frame.count - recent;
+  const start = (x(firstRecent - 1) + x(firstRecent)) / 2;
+  return `<rect class="zone-recent" x="${start.toFixed(1)}" y="${frame.top}" width="${(frame.right - start).toFixed(1)}" height="${frame.bottom - frame.top}"/>
+    <text class="axis-text" x="${(frame.right - 4).toFixed(1)}" y="${frame.top + 12}" text-anchor="end">${recent} ditët e fundit</text>`;
+}
+
+function seriesLines(config, x, y) {
+  const daily = config.values.map((value, index) => (Number.isFinite(value) ? { x: x(index), y: y(value) } : null));
+  const average = config.averages.map((value, index) => (Number.isFinite(value) ? { x: x(index), y: y(value) } : null));
+  return `<path class="line-daily" d="${drawLine(daily)}"/>
+    <path class="line-avg" d="${drawLine(average)}"/>`;
+}
+
+function seriesPoints(config, x, y) {
+  const count = config.values.length;
+  const band = count > 1 ? (x(1) - x(0)) : 40;
+  return config.values.map((value, index) => {
+    if (!Number.isFinite(value)) return '';
+    const px = x(index).toFixed(1);
+    const py = y(value).toFixed(1);
+    const isRecent = index >= count - config.recentCount;
+    const average = config.averages[index];
+    const tip = `${formatDateLong(config.dates[index])} · ${config.metricLabel}: ${fmtValue(value)}${config.unit}`
+      + ` · Mesatarja 7-ditore: ${Number.isFinite(average) ? fmtNum(average) : 'ende pa 7 ditë'}`;
+    return `<g>
+      <circle class="pt-focus" cx="${px}" cy="${py}" r="8"/>
+      <circle class="pt${isRecent ? ' is-recent' : ''}" cx="${px}" cy="${py}" r="3.6"/>
+      <rect class="hit" x="${(x(index) - band / 2).toFixed(1)}" y="0" width="${band.toFixed(1)}" height="100%"
+            data-tip="${escapeHtml(tip)}" data-x="${px}" data-y="${py}"/>
+    </g>`;
+  }).join('');
+}
+
+/* ---------- të vegjël ---------- */
 
 export function sparkline(values, options = {}) {
   const width = 100;
@@ -126,15 +160,12 @@ export function sparkline(values, options = {}) {
   const high = Math.max(...real);
   const points = values.map((value, index) => (
     Number.isFinite(value)
-      ? {
-          x: scale(index, 0, Math.max(1, values.length - 1), 1, width - 1),
-          y: scale(value, low, high, height - 3, 3)
-        }
+      ? { x: scale(index, 0, Math.max(1, values.length - 1), 1, width - 1), y: scale(value, low, high, height - 3, 3) }
       : null
   ));
   const stroke = options.color || 'var(--cyan)';
-  return `<svg class="chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true">
-    <path d="${drawLine(points)}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linecap="round"
+  return `<svg class="chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-hidden="true" style="height:26px">
+    <path d="${drawLine(points)}" fill="none" stroke="${stroke}" stroke-width="1.8" stroke-linecap="round"
           stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
   </svg>`;
 }
@@ -144,20 +175,22 @@ export function ringProgress(ratio, centerText, subText) {
   const radius = 48;
   const circumference = 2 * Math.PI * radius;
   const filled = circumference * Math.min(1, Math.max(0, ratio));
-  return `<svg viewBox="0 0 120 120" role="img" aria-label="${escapeHtml(subText || 'Progres')}" style="width:120px;height:120px;display:block">
-    <circle cx="60" cy="60" r="${radius}" fill="none" stroke="var(--surface-3)" stroke-width="10"/>
-    <circle cx="60" cy="60" r="${radius}" fill="none" stroke="var(--teal)" stroke-width="10" stroke-linecap="round"
+  return `<svg viewBox="0 0 120 120" role="img" aria-label="${escapeHtml(`${centerText} ${subText || ''}`)}" style="width:112px;height:112px;display:block;flex-shrink:0">
+    <circle cx="60" cy="60" r="${radius}" fill="none" stroke="var(--surface-3)" stroke-width="9"/>
+    <circle cx="60" cy="60" r="${radius}" fill="none" stroke="var(--accent)" stroke-width="9" stroke-linecap="round"
             stroke-dasharray="${filled.toFixed(1)} ${(circumference - filled).toFixed(1)}" transform="rotate(-90 60 60)"/>
-    <text x="60" y="58" text-anchor="middle" fill="var(--text)" font-size="22" font-weight="700">${escapeHtml(centerText)}</text>
-    <text x="60" y="78" text-anchor="middle" fill="var(--text-3)" font-size="10">${escapeHtml(subText || '')}</text>
+    <text x="60" y="58" text-anchor="middle" fill="var(--text)" font-size="21" font-weight="700" font-family="system-ui, sans-serif">${escapeHtml(centerText)}</text>
+    <text x="60" y="78" text-anchor="middle" fill="var(--text-3)" font-size="11" font-family="system-ui, sans-serif">${escapeHtml(subText || '')}</text>
   </svg>`;
 }
 
-/** Harta e lidhjeve mes metrikave. Nyjet në rreth, vijat sa më të trasha aq më e fortë lidhja. */
+/* ---------- Patterns ---------- */
+
+/** Harta e lidhjeve mes metrikave: sa më e trashë vija, aq më e fortë lidhja. */
 export function relationshipChart(links, labels) {
   const size = 300;
   const center = size / 2;
-  const radius = 98;
+  const radius = 96;
   const names = Object.keys(labels);
   const positions = {};
   names.forEach((name, index) => {
@@ -168,92 +201,113 @@ export function relationshipChart(links, labels) {
   const edges = links.filter(link => link.strong).map(link => {
     const from = positions[link.a];
     const to = positions[link.b];
-    const thickness = 1 + Math.abs(link.r) * 4;
-    const color = link.r > 0 ? 'var(--teal)' : 'var(--lavender)';
-    const tip = `${labels[link.a]} ↔ ${labels[link.b]} · r = ${link.r.toFixed(2)} · ${link.n} ditë`;
+    const color = link.r > 0 ? 'var(--accent)' : 'var(--lavender)';
+    const tip = `${labels[link.a]} ↔ ${labels[link.b]} · r = ${fmtNum(link.r, 2)} · ${link.n} ditë`;
     return `<line x1="${from.x.toFixed(1)}" y1="${from.y.toFixed(1)}" x2="${to.x.toFixed(1)}" y2="${to.y.toFixed(1)}"
-      stroke="${color}" stroke-width="${thickness.toFixed(2)}" stroke-linecap="round" opacity="0.8"
+      stroke="${color}" stroke-width="${(1 + Math.abs(link.r) * 4).toFixed(2)}" stroke-linecap="round" opacity="0.85"
       data-tip="${escapeHtml(tip)}" data-x="${((from.x + to.x) / 2).toFixed(1)}" data-y="${((from.y + to.y) / 2).toFixed(1)}"/>`;
   }).join('');
 
   const nodes = names.map(name => {
     const position = positions[name];
     const above = position.y < center;
-    return `<g><circle cx="${position.x.toFixed(1)}" cy="${position.y.toFixed(1)}" r="7" fill="var(--surface)" stroke="var(--cyan)" stroke-width="2.5"/>
-      <text x="${position.x.toFixed(1)}" y="${(position.y + (above ? -14 : 21)).toFixed(1)}" class="wall-label">${escapeHtml(labels[name])}</text></g>`;
+    return `<circle cx="${position.x.toFixed(1)}" cy="${position.y.toFixed(1)}" r="6.5" fill="var(--surface)" stroke="var(--text-2)" stroke-width="2"/>
+      <text x="${position.x.toFixed(1)}" y="${(position.y + (above ? -13 : 21)).toFixed(1)}" class="wall-label">${escapeHtml(labels[name])}</text>`;
   }).join('');
 
-  return `<div class="chart-wrap" style="max-width:340px;margin:0 auto">
-    <svg class="chart" viewBox="0 0 ${size} ${size}" role="img" aria-label="Harta e lidhjeve mes gjashtë matjeve">
-      <title>Harta e lidhjeve mes gjashtë matjeve</title>
-      ${edges}${nodes}
+  return `<div class="chart-wrap" style="max-width:360px;margin:0 auto">
+    <svg class="chart" viewBox="0 0 ${size} ${size}" role="img" tabindex="0" aria-label="Harta e lidhjeve mes gjashtë matjeve">
+      <title>Harta e lidhjeve mes gjashtë matjeve</title>${edges}${nodes}
     </svg>
-    <div class="chart-tip" role="status" aria-live="polite"></div>
+    <div class="chart-tip" aria-hidden="true"></div>
   </div>`;
 }
 
-/** Connection Wall: ti në qendër, deri në pesë persona rreth teje. */
-export function wallChart(people, gaps) {
-  const size = 340;
-  const center = size / 2;
-  const radius = 112;
+/**
+ * Grafik shpërndarjeje për dy metrika. Ditët me të njëjtat vlera nuk mbulojnë njëra-tjetrën:
+ * bashkohen në një rreth më të madh dhe tooltip-i tregon sa ditë janë.
+ */
+export function scatterPlot(config) {
+  if (config.points.length < 3) return '';
+  const width = 300;
+  const height = 236;
+  const frame = { left: 46, right: width - 12, top: 12, bottom: height - 46 };
+  const x = value => scale(value, config.xRange.min, config.xRange.max, frame.left, frame.right);
+  const y = value => scale(value, config.yRange.min, config.yRange.max, frame.bottom, frame.top);
+
+  const groups = new Map();
+  for (const point of config.points) {
+    const key = `${point.x}|${point.y}`;
+    groups.set(key, { x: point.x, y: point.y, count: (groups.get(key) || { count: 0 }).count + 1 });
+  }
+
+  const dots = [...groups.values()].map(group => {
+    const px = x(group.x).toFixed(1);
+    const py = y(group.y).toFixed(1);
+    const radius = 3.5 + 2 * Math.sqrt(group.count - 1);
+    const tip = `${config.xLabel}: ${fmtValue(group.x)} · ${config.yLabel}: ${fmtValue(group.y)} · ${group.count} ditë`;
+    return `<g><circle class="pt-focus" cx="${px}" cy="${py}" r="${(radius + 4).toFixed(1)}"/>
+      <circle class="scatter-pt" cx="${px}" cy="${py}" r="${radius.toFixed(1)}" data-tip="${escapeHtml(tip)}" data-x="${px}" data-y="${py}"/></g>`;
+  }).join('');
+
+  return `<div class="chart-wrap">
+    <svg class="chart" viewBox="0 0 ${width} ${height}" role="img" tabindex="0" aria-label="${escapeHtml(config.alt)}">
+      <title>${escapeHtml(config.alt)}</title>
+      ${scatterAxes(frame, config, x, y, width, height)}${dots}
+    </svg>
+    <div class="chart-tip" aria-hidden="true"></div>
+  </div>`;
+}
+
+function scatterAxes(frame, config, x, y, width, height) {
+  const xTicks = [config.xRange.min, (config.xRange.min + config.xRange.max) / 2, config.xRange.max];
+  const yTicks = [config.yRange.min, (config.yRange.min + config.yRange.max) / 2, config.yRange.max];
+  const middleY = ((frame.top + frame.bottom) / 2).toFixed(1);
+  return `
+    <line class="axis-line" x1="${frame.left}" y1="${frame.bottom}" x2="${frame.right}" y2="${frame.bottom}"/>
+    <line class="axis-line" x1="${frame.left}" y1="${frame.top}" x2="${frame.left}" y2="${frame.bottom}"/>
+    ${xTicks.map(value => `<text class="axis-text" x="${x(value).toFixed(1)}" y="${frame.bottom + 16}" text-anchor="middle">${fmtValue(value)}</text>`).join('')}
+    ${yTicks.map(value => `<text class="axis-text" x="${frame.left - 7}" y="${(y(value) + 4).toFixed(1)}" text-anchor="end">${fmtValue(value)}</text>`).join('')}
+    <text class="axis-title" x="${((frame.left + frame.right) / 2).toFixed(1)}" y="${height - 8}" text-anchor="middle">${escapeHtml(config.xTitle)}</text>
+    <text class="axis-title" x="13" y="${middleY}" text-anchor="middle" transform="rotate(-90 13 ${middleY})">${escapeHtml(config.yTitle)}</text>`;
+}
+
+/* ---------- Connection Wall ---------- */
+
+/**
+ * Ti në qendër, deri në pesë persona rreth teje. Të gjitha vijat janë të njëjta:
+ * muri vetëm organizon, nuk mat as nuk krahason lidhjet.
+ */
+export function wallChart(people) {
   if (people.length === 0) return '';
+  const width = 520;
+  const height = 450;
+  const center = { x: width / 2, y: 196 };
+  const radius = 148;
 
   const nodes = people.map((person, index) => {
     const angle = (index / people.length) * Math.PI * 2 - Math.PI / 2;
-    const x = center + Math.cos(angle) * radius;
-    const y = center + Math.sin(angle) * radius;
-    const gap = gaps[person.name];
-    const fresh = gap !== null && gap !== undefined && gap <= 7;
-    const gapText = gap === null || gap === undefined ? 'pa datë' : `${gap} ditë më parë`;
-    const tip = `${person.name} · ${person.relation || 'i njohur'} · ${gapText}`;
-    return `<g class="wall-node" data-tip="${escapeHtml(tip)}" data-x="${x.toFixed(1)}" data-y="${y.toFixed(1)}">
-      <line class="wall-link${fresh ? ' is-fresh' : ''}" x1="${center}" y1="${center}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"
-            stroke-dasharray="${fresh ? '0' : '4 5'}"/>
-      <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="21" fill="${escapeHtml(person.color || '#0d9488')}"/>
-      <text x="${x.toFixed(1)}" y="${(y + 5).toFixed(1)}" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">${escapeHtml(initials(person.name))}</text>
-      <text class="wall-label" x="${x.toFixed(1)}" y="${(y + 38).toFixed(1)}">${escapeHtml(person.name)}</text>
-      <text class="wall-sub" x="${x.toFixed(1)}" y="${(y + 50).toFixed(1)}">${escapeHtml(gapText)}</text>
-    </g>`;
+    const nx = center.x + Math.cos(angle) * radius;
+    const ny = center.y + Math.sin(angle) * radius;
+    const tip = `${person.name} · ${person.relation || 'pa lidhje të shënuar'} · ${person.lastLabel}`;
+    return `<line class="wall-line" x1="${center.x}" y1="${center.y}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}"/>
+      <g data-tip="${escapeHtml(tip)}" data-x="${nx.toFixed(1)}" data-y="${(ny - 26).toFixed(1)}">
+        <circle class="pt-focus" cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="30"/>
+        <circle cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="24" fill="${escapeHtml(person.color)}"/>
+        <text x="${nx.toFixed(1)}" y="${(ny + 5).toFixed(1)}" text-anchor="middle" fill="#fff" font-size="14" font-weight="700" font-family="system-ui, sans-serif">${escapeHtml(initials(person.name))}</text>
+        <text class="wall-label" x="${nx.toFixed(1)}" y="${(ny + 42).toFixed(1)}">${escapeHtml(truncate(person.name, 16))}</text>
+        <text class="wall-sub" x="${nx.toFixed(1)}" y="${(ny + 56).toFixed(1)}">${escapeHtml(truncate(person.relation || '—', 20))}</text>
+        <text class="wall-sub" x="${nx.toFixed(1)}" y="${(ny + 69).toFixed(1)}">${escapeHtml(person.lastLabel)}</text>
+      </g>`;
   }).join('');
 
-  return `<div class="chart-wrap" style="max-width:380px;margin:0 auto">
-    <svg class="wall-svg" viewBox="0 0 ${size} ${size}" role="img" aria-label="Harta e lidhjeve të tua">
-      <title>Harta e lidhjeve të tua</title>
+  return `<div class="chart-wrap">
+    <svg class="wall-svg" viewBox="0 0 ${width} ${height}" role="img" tabindex="0" aria-label="Connection Wall: ti në qendër dhe ${people.length} ${people.length === 1 ? 'person' : 'persona'} përreth">
+      <title>Connection Wall</title>
       ${nodes}
-      <circle cx="${center}" cy="${center}" r="29" fill="var(--surface)" stroke="var(--teal)" stroke-width="2.5"/>
-      <text x="${center}" y="${center + 5}" text-anchor="middle" fill="var(--text)" font-size="13" font-weight="700">TI</text>
+      <circle class="wall-center" cx="${center.x}" cy="${center.y}" r="30"/>
+      <text x="${center.x}" y="${center.y + 5}" text-anchor="middle" fill="var(--text)" font-size="14" font-weight="700" font-family="system-ui, sans-serif">Ti</text>
     </svg>
-    <div class="chart-tip" role="status" aria-live="polite"></div>
+    <div class="chart-tip" aria-hidden="true"></div>
   </div>`;
-}
-
-// Yjësia dekorative e hero-s: pika të lidhura, motivi vizual i projektit.
-export function constellation() {
-  const dots = [[6, 72], [21, 40], [35, 60], [51, 28], [65, 48], [80, 22], [94, 54]];
-  const lines = dots.slice(1).map((dot, index) =>
-    `<line x1="${dots[index][0]}" y1="${dots[index][1]}" x2="${dot[0]}" y2="${dot[1]}" stroke="var(--teal)" stroke-width="0.35" opacity="0.45"/>`
-  ).join('');
-  const circles = dots.map(([x, y], index) =>
-    `<circle cx="${x}" cy="${y}" r="${index % 3 === 0 ? 1.5 : 0.9}" fill="var(--teal)" opacity="0.6"/>`
-  ).join('');
-  return `<svg class="hero-constellation" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${lines}${circles}</svg>`;
-}
-
-export function initials(name) {
-  const parts = String(name || '').trim().split(/\s+/).filter(Boolean).slice(0, 2);
-  const letters = parts.map(part => part.charAt(0).toUpperCase()).join('');
-  return letters || '?';
-}
-
-export function shortDate(iso) {
-  if (!iso) return '';
-  const parts = String(iso).split('-');
-  return parts.length === 3 ? `${parts[2]}.${parts[1]}` : String(iso);
-}
-
-export function escapeHtml(text) {
-  const replacements = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-  return String(text === null || text === undefined ? '' : text)
-    .replace(/[&<>"']/g, character => replacements[character]);
 }

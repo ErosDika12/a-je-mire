@@ -1,10 +1,12 @@
-import { icon, mountChartTips, formatDateLong } from '../ui.js';
-import { wallChart, initials, escapeHtml } from '../chart.js';
+import { icon, mountChartTips } from '../ui.js';
+import { formatDateLong } from '../format.js';
+import { wallChart } from '../chart.js';
+import { initials, escapeHtml } from '../format.js';
 import { round } from '../stats.js';
 import { myNormal, tagLabel } from '../patterns.js';
 import { CONNECT_ACTIVITIES, daysSince, suggestConnection } from '../compose.js';
 import { PERSON_COLORS } from '../storage.js';
-import { emptyBlock } from './dashboard.js';
+import { emptyState as emptyBlock } from '../components.js';
 
 const SOCIAL_TAGS = ['shoket', 'familja', 'basketboll', 'shetitje', 'kafe'];
 
@@ -39,11 +41,7 @@ export function renderWall(container, app) {
         <p class="card-sub">Ti në qendër, ${people.length} ${people.length === 1 ? 'person' : 'persona'} rreth teje. Rendi është ai i shtimit — pa renditje sipas rëndësisë.</p>
       </div></div>
       <div class="desktop-only">
-        ${wallChart(people, gaps)}
-        <div class="chart-legend" style="justify-content:center">
-          <span style="color:var(--teal)"><i class="legend-swatch"></i>kontakt brenda 7 ditëve</span>
-          <span style="color:var(--text-3)"><i class="legend-swatch dashed"></i>më herët ose pa datë</span>
-        </div>
+        ${wallChart(people.map(person => ({ ...person, color: person.color || PERSON_COLORS[0], lastLabel: gapLabel(gaps[person.name]) })))}
       </div>
       <div class="person-grid" style="margin-top:var(--s5)">
         ${people.map(person => wallCard(person, gaps[person.name])).join('')}
@@ -64,6 +62,11 @@ function head() {
     <h1 class="page-title">Connection Wall</h1>
     <p class="page-sub">Njerëzit që ke zgjedhur, çfarë bëni bashkë, dhe kur është hera e fundit që e ke shënuar një kontakt.</p>
   </header>`;
+}
+
+function gapLabel(gap) {
+  if (gap === null || gap === undefined) return 'pa datë kontakti';
+  return gap === 0 ? 'kontakt sot' : `${gap} ditë më parë`;
 }
 
 function wallCard(person, gap) {
@@ -154,7 +157,4 @@ function momentsCard(moments) {
 }
 
 function wire(container, app) {
-  for (const button of container.querySelectorAll('[data-go]')) {
-    button.addEventListener('click', () => app.goTo(button.dataset.go));
-  }
 }

@@ -1,4 +1,4 @@
-import { mean, std, pctChange, zScore, corr, round } from './stats.js';
+import { mean, std, pctChange, zScore, corr } from './stats.js';
 
 // Gjashtë metrikat, gjithmonë në këtë rend.
 export const METRICS = ['mood', 'sleep', 'energy', 'social', 'joy', 'load'];
@@ -142,20 +142,41 @@ export function correlations(checkins, minStrength = 0.35) {
       const b = METRICS[j];
       const r = corr(metricValues(checkins, a), metricValues(checkins, b));
       if (r === null) continue;
-      links.push({ a, b, r, n: checkins.length, strong: Math.abs(r) >= minStrength });
+      // n janë ditët ku të dyja vlerat ekzistojnë, jo të gjitha check-ins.
+      const n = scatterPairs(checkins, a, b).length;
+      links.push({ a, b, r, n, strong: Math.abs(r) >= minStrength });
     }
   }
   return links.sort((left, right) => Math.abs(right.r) - Math.abs(left.r));
 }
 
-// Metrika e ditës N kundrejt metrikës së ditës N+1.
+// Çiftet (x, y) për një grafik shpërndarjeje: vetëm ditët ku të dyja vlerat ekzistojnë.
+export function scatterPairs(checkins, xMetric, yMetric) {
+  return checkins
+    .filter(checkin => Number.isFinite(checkin[xMetric]) && Number.isFinite(checkin[yMetric]))
+    .map(checkin => ({ x: checkin[xMetric], y: checkin[yMetric], date: checkin.date }));
+}
+
+// Dita N kundrejt ditës N+1. Çifti merret vetëm kur dy check-ins janë vërtet
+// ditë radhazi në kalendar — një ditë që mungon nuk lidh dy ditë të largëta.
+export function laggedPairs(checkins, fromMetric, toMetric) {
+  const pairs = [];
+  for (let index = 1; index < checkins.length; index++) {
+    const before = checkins[index - 1];
+    const after = checkins[index];
+    if (shiftDate(before.date, 1) !== after.date) continue;
+    if (!Number.isFinite(before[fromMetric]) || !Number.isFinite(after[toMetric])) continue;
+    pairs.push({ x: before[fromMetric], y: after[toMetric], date: after.date });
+  }
+  return pairs;
+}
+
 export function laggedLink(checkins, fromMetric, toMetric) {
-  if (checkins.length < 4) return null;
-  const today = checkins.slice(0, -1).map(checkin => checkin[fromMetric]);
-  const tomorrow = checkins.slice(1).map(checkin => checkin[toMetric]);
-  const r = corr(today, tomorrow);
+  const pairs = laggedPairs(checkins, fromMetric, toMetric);
+  if (pairs.length < MIN_DAYS.tag + 1) return null;
+  const r = corr(pairs.map(pair => pair.x), pairs.map(pair => pair.y));
   if (r === null) return null;
-  return { fromMetric, toMetric, r, n: today.length };
+  return { fromMetric, toMetric, r, n: pairs.length, pairs };
 }
 
 // Mesatare me kusht: ditët ku DY metrika ishin mbi normalen, kundrejt ditëve të tjera.
@@ -232,15 +253,71 @@ export function whatHelpsMe(checkins) {
   return results.sort((left, right) => right.goodness - left.goodness);
 }
 
-// ---------- ndihmës për tekstin ----------
-
-export function formatMetric(metric, value) {
-  const rounded = round(value, 1);
-  if (rounded === null) return '—';
-  return metric === 'sleep' ? `${rounded} orë` : String(rounded);
+// Renditja kryesore e What Helps Me: humori mesatar me aktivitetin minus pa të.
+// Aktiviteti shfaqet vetëm me të paktën 3 ditë me të dhe 3 ditë pa të.
+export function activityRanking(checkins) {
+  return allTags(checkins)
+    .map(tag => activityLift(checkins, tag, 'mood'))
+    .filter(Boolean)
+    .sort((left, right) => right.lift - left.lift);
 }
 
-export function directionWord(metric, pct) {
-  if (pct === null || Math.abs(pct) < 1) return 'qëndroi';
-  return pct < 0 ? 'ra' : 'u ngrit';
+// ---------- datat ----------
+
+// Zhvendos një datë VVVV-MM-DD me disa ditë. Në UTC, që ndërrimi i orës verore
+// të mos e prishë numërimin.
+export function shiftDate(iso, days) {
+  const [year, month, day] = String(iso).split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+}
+
+/**
+ * Udhëtimi 30-ditor: 30 data radhazi që nisin me check-in-in e parë.
+ * Kur historia është më e gjatë, dritarja është 30 ditët e fundit deri sot.
+ */
+export function journeyDays(checkins, today, length = 30) {
+  const recorded = new Set(checkins.map(checkin => checkin.date));
+  let start = checkins.length > 0 && checkins[0].date <= today ? checkins[0].date : today;
+  if (shiftDate(start, length - 1) < today) start = shiftDate(today, -(length - 1));
+
+  const days = [];
+  for (let index = 0; index < length; index++) {
+    const date = shiftDate(start, index);
+    let state = 'future';
+    if (recorded.has(date)) state = 'done';
+    else if (date < today) state = 'missing';
+    else if (date === today) state = 'pending';
+    days.push({ date, state, isToday: date === today });
+  }
+  return {
+    days,
+    done: days.filter(day => day.state === 'done').length,
+    missing: days.filter(day => day.state === 'missing').length,
+    remaining: days.filter(day => day.state === 'future' || day.state === 'pending').length
+  };
+}
+
+// 30 ditët e fundit të kalendarit, secila me check-in-in e saj (ose pa) dhe periudhën.
+export function timelineDays(checkins, today, settings, length = 30) {
+  const { baseline, recent } = splitPeriods(checkins, settings);
+  const baselineDates = new Set(baseline.map(checkin => checkin.date));
+  const recentDates = new Set(recent.map(checkin => checkin.date));
+  const byDate = new Map(checkins.map(checkin => [checkin.date, checkin]));
+
+  const days = [];
+  for (let index = length - 1; index >= 0; index--) {
+    const date = shiftDate(today, -index);
+    let period = null;
+    if (recentDates.has(date)) period = 'recent';
+    else if (baselineDates.has(date)) period = 'baseline';
+    days.push({ date, entry: byDate.get(date) || null, period, isToday: date === today });
+  }
+  return days;
+}
+
+// Mesatarja dhe devijimi i baseline-it për brezin e grafikut.
+export function baselineStats(checkins, settings, metric) {
+  const { baseline } = splitPeriods(checkins, settings);
+  const values = metricValues(baseline, metric);
+  return { mean: mean(values), std: std(values), n: values.filter(Number.isFinite).length };
 }

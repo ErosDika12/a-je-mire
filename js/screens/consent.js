@@ -1,5 +1,4 @@
 import { icon } from '../ui.js';
-import { constellation } from '../chart.js';
 
 const COLLECTED = [
   ['calendar', 'Gjashtë numra në ditë: humori, gjumi, energjia, lidhja sociale, gëzimi dhe ngarkesa.'],
@@ -57,9 +56,8 @@ function factList(items) {
 function markup() {
   return `<div class="consent-page">
     <div class="consent-card">
-      <div class="hero" style="margin-bottom:var(--s4)">
-        ${constellation()}
-        <div class="hero-body">
+      <div class="consent-hero texture">
+        <div>
           <div class="consent-logo">
             ${logoMark()}
             <div>

@@ -1,6 +1,6 @@
 import { round } from './stats.js';
 import {
-  METRIC_LABELS, MIN_DAYS, somethingChanged, whatHelpsMe, normalReport
+  METRIC_LABELS, MIN_DAYS, somethingChanged, whatHelpsMe, normalReport, tagLabel
 } from './patterns.js';
 
 // Aktivitetet që mund të propozohen për një hap të vogël social.
@@ -110,7 +110,7 @@ function buildReason(person, socialDropped, today, helps) {
     return `Kanë kaluar ${gap} ditë nga hera e fundit që e shënove këtë kontakt.`;
   }
   if (helps[0]) {
-    return `Në të dhënat e tua, ditët me "${helps[0].tag}" kanë pasur ${METRIC_LABELS[helps[0].metric].toLowerCase()} më të lartë.`;
+    return `Në të dhënat e tua, ditët me "${tagLabel(helps[0].tag)}" kanë pasur ${METRIC_LABELS[helps[0].metric].toLowerCase()} më të lartë.`;
   }
   return 'Një hap i vogël, kur të kesh kohë. Pa detyrim.';
 }
@@ -164,7 +164,7 @@ function buildQuestion(flaggedMetrics) {
 function buildStep(topHelp, flaggedMetrics, profile) {
   if (topHelp) {
     const lift = round(Math.abs(topHelp.lift), 1);
-    return `Provo "${topHelp.tag}" një ditë më shumë javën e ardhshme. Deri tani, ditët me të kanë pasur ${METRIC_LABELS[topHelp.metric].toLowerCase()} mesatarisht ${lift} pikë ndryshe.`;
+    return `Provo "${tagLabel(topHelp.tag)}" një ditë më shumë javën e ardhshme. Deri tani, ditët me të kanë pasur ${METRIC_LABELS[topHelp.metric].toLowerCase()} mesatarisht ${lift} pikë ndryshe.`;
   }
   if (flaggedMetrics.includes('social') && (profile.my5 || []).length > 0) {
     return `Përgatit një mesazh të shkurtër te ${profile.my5[0].name}. Ti vendos nëse e dërgon.`;

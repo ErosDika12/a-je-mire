@@ -1,7 +1,8 @@
-import { icon, toast, copyText, formatDateLong } from '../ui.js';
-import { escapeHtml, initials } from '../chart.js';
+import { icon, toast, copyText } from '../ui.js';
+import { formatDateLong } from '../format.js';
+import { escapeHtml, initials } from '../format.js';
 import { CONNECT_ACTIVITIES, TONES, draftMessage, suggestConnection, daysSince } from '../compose.js';
-import { emptyBlock } from './dashboard.js';
+import { emptyState as emptyBlock } from '../components.js';
 
 // Gjendja e ekranit ruhet ndërmjet rivizatimeve, që teksti i redaktuar të mos humbasë.
 let state = null;
@@ -163,9 +164,6 @@ function refreshDraft(container, app) {
 }
 
 function wire(container, app) {
-  for (const button of container.querySelectorAll('[data-go]')) {
-    button.addEventListener('click', () => app.goTo(button.dataset.go));
-  }
 
   const accept = container.querySelector('[data-accept]');
   if (accept) {

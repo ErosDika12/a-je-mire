@@ -1,8 +1,9 @@
-import { icon, toast, openModal, closeLayer, formatDateLong } from '../ui.js';
-import { initials, escapeHtml } from '../chart.js';
+import { icon, toast, openModal, closeLayer } from '../ui.js';
+import { formatDateLong } from '../format.js';
+import { initials, escapeHtml } from '../format.js';
 import { PERSON_COLORS } from '../storage.js';
 import { CONNECT_ACTIVITIES, daysSince } from '../compose.js';
-import { emptyBlock } from './dashboard.js';
+import { emptyState as emptyBlock } from '../components.js';
 
 const MAX_PEOPLE = 5;
 
