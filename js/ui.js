@@ -40,6 +40,11 @@ const ICON_PATHS = {
   download: '<path d="M12 4v10.6"/><path d="m7.6 10.6 4.4 4.4 4.4-4.4"/><path d="M4.6 19.4h14.8"/>',
   upload: '<path d="M12 19.4V8.8"/><path d="m7.6 12.8 4.4-4.4 4.4 4.4"/><path d="M4.6 4.6h14.8"/>',
   shield: '<path d="M12 3.2 5 6v6c0 4.3 3 7.4 7 8.8 4-1.4 7-4.5 7-8.8V6z"/><path d="m9.2 11.8 2 2 3.6-3.8"/>',
+  cloud: '<path d="M7 18.5h10.2a4.3 4.3 0 0 0 .6-8.6 6 6 0 0 0-11.5 1.5A3.6 3.6 0 0 0 7 18.5z"/>',
+  lock: '<rect x="5" y="10.5" width="14" height="10" rx="2.4"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>',
+  logout: '<path d="M14 4.6H6.6A1.8 1.8 0 0 0 4.8 6.4v11.2a1.8 1.8 0 0 0 1.8 1.8H14"/><path d="M10 12h10"/><path d="m16.4 8.4 3.6 3.6-3.6 3.6"/>',
+  help: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 1 1 3.4 2.4c-.7.3-1 .9-1 1.6v.6"/><path d="M12 17h.01"/>',
+  doc: '<path d="M7 3.6h7l4 4v12.8H7z"/><path d="M14 3.6v4h4"/><path d="M9.6 12.4h5.6M9.6 15.8h5.6"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.4M12 7.8h.01"/>',
   refresh: '<path d="M20 11.6A8 8 0 1 0 18.4 17"/><path d="M20.4 4.6v5.2h-5.2"/>',
   calendar: '<rect x="4" y="5.6" width="16" height="14.4" rx="2.4"/><path d="M4 10.4h16M8.6 3.6v3.6M15.4 3.6v3.6"/>'

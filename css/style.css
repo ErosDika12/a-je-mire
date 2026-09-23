@@ -865,3 +865,33 @@ pre.json {
 @media print {
   .sidebar, .bottomnav, .topbar-actions, .tour-bar, #toast-host { display: none !important; }
 }
+
+/* ---------- llogaria, sinkronizimi, privatësia ---------- */
+.check-row { display: flex; gap: var(--s3); align-items: flex-start; font-size: var(--fs-sm); color: var(--text-2); cursor: pointer; }
+.check-row input { width: 20px; height: 20px; margin-top: 1px; flex: none; accent-color: var(--accent); }
+.check-row a, .facts a, .terms a { color: var(--accent); }
+
+.conflict { border: 1px solid var(--border); border-radius: var(--r-md, 12px); padding: var(--s3) var(--s4) var(--s4); min-width: 0; }
+.conflict legend { padding: 0 var(--s2); }
+.conflict-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); margin-top: var(--s2); }
+.conflict-option { display: flex; gap: var(--s3); align-items: flex-start; padding: var(--s3); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; min-height: 44px; min-width: 0; overflow-wrap: anywhere; }
+.conflict-option:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 7%, transparent); }
+.conflict-option input { accent-color: var(--accent); margin-top: 3px; flex: none; }
+@media (max-width: 520px) { .conflict-grid { grid-template-columns: 1fr; } }
+
+.terms { padding-left: 1.2em; display: grid; gap: var(--s2); color: var(--text-2); font-size: var(--fs-sm); }
+.changelog { padding-left: 1.2em; color: var(--text-2); font-size: var(--fs-sm); margin-top: var(--s2); display: grid; gap: 4px; }
+
+.connect-tabs { max-width: 100%; overflow-x: auto; }
+.seg-control button { white-space: nowrap; }
+
+.update-notice {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom));
+  z-index: 60; display: flex; gap: var(--s3); align-items: center; flex-wrap: wrap; justify-content: center;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 14px;
+  padding: var(--s3) var(--s4); box-shadow: 0 8px 30px rgba(0,0,0,.12); max-width: calc(100vw - 32px); font-size: var(--fs-sm);
+}
+.update-notice span { display: inline-flex; gap: var(--s2); align-items: center; }
+@media (min-width: 1024px) { .update-notice { bottom: var(--s5); } }
+
+.row-between .btn-sm { flex: none; }

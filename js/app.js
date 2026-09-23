@@ -1,4 +1,4 @@
-import { loadProfile, saveProfile, clearAll, todayIso } from './storage.js';
+import { loadProfile, saveProfile, clearAll, todayIso, recordConsent } from './storage.js';
 import { generateProfile, emptyProfile } from './seed.js';
 import { icon, applyTheme, nextTheme, themeIcon, themeLabel, toast, openSheet, closeLayer } from './ui.js';
 import { startTour, stopTour, isTourActive, drawTourBar } from './tour.js';
@@ -11,27 +11,32 @@ import { renderChanged } from './screens/changed.js';
 import { renderWhy } from './screens/why.js';
 import { renderPatterns } from './screens/patterns.js';
 import { renderHelps } from './screens/helps.js';
-import { renderMy5 } from './screens/my5.js';
-import { renderKafe } from './screens/kafe.js';
-import { renderWall } from './screens/wall.js';
+import { renderConnect, setConnectTab } from './screens/connect.js';
 import { renderData } from './screens/data.js';
+import { renderAccount, initAuth } from './screens/account.js';
+import { renderPrivacy } from './screens/privacy.js';
+import { isAuthRedirect, setAuthPersistence } from './cloud/client.js';
+import { forgetPassphrase } from './cloud/sync.js';
 
 import * as stats from './stats.js';
 import * as patterns from './patterns.js';
 
 const SCREENS = [
   { id: 'dashboard', label: 'Sot',                icon: 'today',    group: 'Ti',          render: renderDashboard, primary: true },
-  { id: 'checkin',   label: 'Check-in',           icon: 'check',    group: 'Ti',          render: renderCheckin,   primary: true },
+  { id: 'checkin',   label: 'Check-in',           icon: 'check',    group: 'Ti',          render: renderCheckin },
   { id: 'normal',    label: 'My Normal',          icon: 'normal',   group: 'Patternat',   render: renderNormal,    primary: true },
-  { id: 'changed',   label: 'Something Changed',  icon: 'shift',    group: 'Patternat',   render: renderChanged,   primary: true },
+  { id: 'changed',   label: 'Something Changed',  icon: 'shift',    group: 'Patternat',   render: renderChanged },
   { id: 'why',       label: 'Why?',               icon: 'why',      group: 'Patternat',   render: renderWhy },
-  { id: 'patterns',  label: 'Patterns',           icon: 'patterns', group: 'Patternat',   render: renderPatterns },
+  { id: 'patterns',  label: 'Patterns',           icon: 'patterns', group: 'Patternat',   render: renderPatterns,  primary: true },
   { id: 'helps',     label: 'What Helps Me?',     icon: 'spark',    group: 'Patternat',   render: renderHelps },
-  { id: 'my5',       label: 'MY 5',               icon: 'users',    group: 'Lidhjet',     render: renderMy5 },
-  { id: 'kafe',      label: 'KAFE?',              icon: 'coffee',   group: 'Lidhjet',     render: renderKafe },
-  { id: 'wall',      label: 'Connection Wall',    icon: 'connect',  group: 'Lidhjet',     render: renderWall },
-  { id: 'data',      label: 'Të dhënat e mia',    icon: 'database', group: 'Privatësia',  render: renderData }
+  { id: 'connect',   label: 'Lidhjet',            icon: 'connect',  group: 'Lidhjet',     render: renderConnect,   primary: true },
+  { id: 'data',      label: 'Të dhënat e mia',    icon: 'database', group: 'Privatësia',  render: renderData },
+  { id: 'account',   label: 'Llogaria',           icon: 'cloud',    group: 'Privatësia',  render: renderAccount },
+  { id: 'privacy',   label: 'Privatësia',         icon: 'privacy',  group: 'Privatësia',  render: renderPrivacy }
 ];
+
+// Adresat e vjetra (#/my5, #/kafe, #/wall) dhe butonat data-go vazhdojnë të punojnë.
+const ALIASES = { my5: 'connect', kafe: 'connect', wall: 'connect' };
 
 const byId = Object.fromEntries(SCREENS.map(screen => [screen.id, screen]));
 
@@ -39,6 +44,7 @@ const byId = Object.fromEntries(SCREENS.map(screen => [screen.id, screen]));
 let temporaryTheme = 'auto';
 let current = 'dashboard';
 let navigating = false;
+let pendingAccount = false;
 
 const app = {
   profile: loadProfile(),
@@ -107,7 +113,7 @@ function buildShell() {
 }
 
 function shortLabel(label) {
-  const map = { 'Sot': 'Sot', 'Check-in': 'Check-in', 'My Normal': 'Normalja', 'Something Changed': 'Changed' };
+  const map = { 'My Normal': 'Normalja' };
   return map[label] || label;
 }
 
@@ -131,6 +137,10 @@ function openMoreSheet() {
 // ---------- routeri ----------
 
 function goTo(name) {
+  if (ALIASES[name]) {
+    setConnectTab(name);
+    name = ALIASES[name];
+  }
   const screen = byId[name] || byId.dashboard;
   current = screen.id;
 
@@ -167,7 +177,7 @@ document.getElementById('screens').addEventListener('click', event => {
 window.addEventListener('hashchange', () => {
   if (navigating || !app.profile) return;
   const name = location.hash.replace('#/', '');
-  if (byId[name] && name !== current) goTo(name);
+  if ((byId[name] || ALIASES[name]) && name !== current) goTo(name);
 });
 
 // ---------- gjendja ----------
@@ -197,9 +207,14 @@ function acceptConsent(mode, aiChecked) {
   const consent = { store: true, ai: Boolean(aiChecked), acceptedAt: new Date().toISOString() };
   app.profile = mode === 'private' ? emptyProfile(consent) : generateProfile(consent);
   app.profile.settings.theme = temporaryTheme;
+  recordConsent(app.profile, 'local_storage', true);
+  recordConsent(app.profile, 'text_help', aiChecked);
   saveProfile(app.profile);
+  setAuthPersistence(true);
   showApp();
-  goTo(mode === 'private' ? 'checkin' : 'dashboard');
+  // Nëse erdhi nga një link emaili, pas consent-it vazhdon te Llogaria.
+  goTo(pendingAccount ? 'account' : mode === 'private' ? 'checkin' : 'dashboard');
+  pendingAccount = false;
   toast(mode === 'private' ? 'Profili privat u krijua' : 'Profili sintetik u ngarkua', 'ok');
 }
 
@@ -230,6 +245,8 @@ function resetToPrivate() {
 
 function deleteEverything() {
   clearAll();
+  forgetPassphrase();
+  setAuthPersistence(false);
   stopTour();
   temporaryTheme = currentTheme();
   app.profile = null;
@@ -259,13 +276,59 @@ function boot() {
   applyTheme(currentTheme());
 
   const hasConsent = app.profile !== null && app.profile.consent && app.profile.consent.store === true;
+  setAuthPersistence(hasConsent);
+  registerServiceWorker();
+
+  // Linku i verifikimit ose i rivendosjes: lidhja me serverin nis vetëm në këtë rast.
+  const fromEmail = isAuthRedirect();
+  if (fromEmail) initAuth(app);
+
   if (!hasConsent) {
+    pendingAccount = fromEmail;
     showConsent();
     return;
   }
   showApp();
   const requested = location.hash.replace('#/', '');
-  goTo(byId[requested] ? requested : 'dashboard');
+  if (fromEmail) goTo('account');
+  else goTo(byId[requested] || ALIASES[requested] ? requested : 'dashboard');
+}
+
+// ---------- offline (PWA) ----------
+
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator) || location.hostname === 'localhost' && !import.meta.env.PROD) return;
+  navigator.serviceWorker.register('/sw.js').then(registration => {
+    const offer = worker => showUpdateNotice(() => worker.postMessage('SKIP_WAITING'));
+    if (registration.waiting && navigator.serviceWorker.controller) offer(registration.waiting);
+    registration.addEventListener('updatefound', () => {
+      const worker = registration.installing;
+      if (!worker) return;
+      worker.addEventListener('statechange', () => {
+        // Vetëm kur një version i vjetër po kontrollon faqen ka kuptim njoftimi "version i ri".
+        if (worker.state === 'installed' && navigator.serviceWorker.controller) offer(worker);
+      });
+    });
+  }).catch(() => { /* pa offline, aplikacioni punon njësoj */ });
+
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloading) return;
+    reloading = true;
+    location.reload();
+  });
+}
+
+function showUpdateNotice(apply) {
+  if (document.getElementById('update-notice')) return;
+  const bar = document.createElement('div');
+  bar.id = 'update-notice';
+  bar.className = 'update-notice';
+  bar.setAttribute('role', 'status');
+  bar.innerHTML = `<span>${icon('refresh', 16)} Ka një version të ri të aplikacionit.</span>
+    <button type="button" class="btn btn-sm btn-primary">Rifresko</button>`;
+  bar.querySelector('button').addEventListener('click', apply);
+  document.body.appendChild(bar);
 }
 
 // Tema e sistemit mund të ndryshojë ndërsa faqja është e hapur.

@@ -3,6 +3,9 @@ import { METRICS, METRIC_RANGES } from './patterns.js';
 // E vetmja derë për të shkruar dhe lexuar në localStorage.
 // Gjithçka rri nën një çelës të vetëm.
 const STORAGE_KEY = 'ajemire.v1';
+// Kopja e fundit para një zëvendësimi (import ose rikthim nga cloud), që gabimi të kthehet mbrapsht.
+const BACKUP_KEY = 'ajemire.v1.before-replace';
+export const POLICY_VERSION = '2026-09';
 export const MODEL_VERSION = 2;
 
 export function todayIso() {
@@ -53,9 +56,38 @@ export function saveProfile(profile) {
 export function clearAll() {
   try {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(BACKUP_KEY);
   } catch (error) {
     // asgjë për të pastruar
   }
+}
+
+// Ruhet vetëm kur ka consent, njësoj si profili.
+export function saveLocalBackup(profile) {
+  if (!profile || !profile.consent || profile.consent.store !== true) return false;
+  try {
+    localStorage.setItem(BACKUP_KEY, JSON.stringify({ savedAt: new Date().toISOString(), profile }));
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+export function loadLocalBackup() {
+  try {
+    const text = localStorage.getItem(BACKUP_KEY);
+    if (!text) return null;
+    const data = JSON.parse(text);
+    return { savedAt: data.savedAt, profile: migrate(data.profile) };
+  } catch (error) {
+    return null;
+  }
+}
+
+// Çdo pëlqim shënohet veç e veç, me datë dhe version të politikës, që të mund të tregohet më vonë.
+export function recordConsent(profile, kind, granted) {
+  profile.consentLog = profile.consentLog || [];
+  profile.consentLog.push({ kind, granted: Boolean(granted), at: new Date().toISOString(), policyVersion: POLICY_VERSION });
 }
 
 // Kthen true kur shkarkimi nisi, false kur shfletuesi e pengoi.
@@ -121,6 +153,9 @@ export function migrate(raw) {
     .filter(item => item && DATE_PATTERN.test(item.date) && typeof item.personName === 'string');
   profile.dismissed = Array.isArray(profile.dismissed) ? profile.dismissed : [];
   profile.experiment = profile.experiment || null;
+  profile.consentLog = Array.isArray(profile.consentLog) ? profile.consentLog : [];
+  // Gjendja e sinkronizimit: kurrë fjalëkalimi, vetëm ID e pajisjes dhe revizioni i fundit i njohur.
+  profile.sync = profile.sync && typeof profile.sync === 'object' ? profile.sync : null;
   return profile;
 }
 
@@ -190,6 +225,8 @@ export function validateProfile(raw) {
     // Një fajll i importuar janë të dhënat e vetë përdoruesit, përveç nëse thotë shprehimisht
     // se është demo. Nuk duhet të etiketohet sintetik kur nuk është.
     mode: raw.mode === 'demo' ? 'demo' : 'private',
+    // Gjendja e sinkronizimit i përket pajisjes që e krijoi, jo fajllit.
+    sync: null,
     consent: { store: true, ai: Boolean(raw.consent && raw.consent.ai), acceptedAt: new Date().toISOString() }
   });
   return { ok: true, errors, warnings, profile };

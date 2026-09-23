@@ -1,6 +1,7 @@
 import { icon, toast, openModal, closeLayer } from '../ui.js';
 import { escapeHtml, formatDateLong } from '../format.js';
-import { exportToFile, importFromText } from '../storage.js';
+import { exportToFile, importFromText, saveLocalBackup, loadLocalBackup } from '../storage.js';
+import { findConflicts, mergeProfiles } from '../merge.js';
 import { allTags } from '../patterns.js';
 
 export function renderData(container, app) {
@@ -35,6 +36,7 @@ export function renderData(container, app) {
         ${row('Pranuar më', profile.consent.acceptedAt ? formatDateLong(profile.consent.acceptedAt.slice(0, 10)) : '—')}
         ${row('Çelësi në localStorage', 'ajemire.v1')}
       </dl>
+      ${consentLogBlock(profile)}
     </section>
 
     <section class="card" style="margin-top:var(--s4)">
@@ -51,6 +53,8 @@ export function renderData(container, app) {
       <div id="import-report" style="margin-top:var(--s4)"></div>
       <p class="card-note">Importi kontrollohet para se të pranohet: datat, kufijtë e vlerave dhe rreshtat e dyfishtë. Rreshtat e gabuar nuk bëhen zero — thjesht nuk merren, dhe raportohen.</p>
     </section>
+
+    ${backupCard()}
 
     <section class="card" style="margin-top:var(--s4)">
       <div class="card-head"><div>
@@ -84,6 +88,36 @@ export function renderData(container, app) {
   // textContent, jo innerHTML: JSON-i përmban tekst të shkruar nga përdoruesi.
   container.querySelector('#data-json').textContent = JSON.stringify(profile, null, 2);
   wire(container, app);
+}
+
+const CONSENT_NAMES = {
+  local_storage: 'Ruajtja lokale', text_help: 'Ndihma për tekstin', terms: 'Kushtet',
+  privacy: 'Privatësia', cloud_backup: 'Kopja në cloud'
+};
+
+function consentLogBlock(profile) {
+  const log = profile.consentLog || [];
+  if (log.length === 0) return '';
+  return `<details class="collapse mt-4">
+    <summary>${icon('doc', 16)} Historiku i pëlqimeve (${log.length})</summary>
+    <div class="collapse-body"><dl>
+      ${log.slice().reverse().map(item => row(`${CONSENT_NAMES[item.kind] || item.kind} · v${item.policyVersion}`,
+        `${item.granted ? 'pranuar' : 'refuzuar/tërhequr'} · ${formatDateLong(item.at.slice(0, 10))}`)).join('')}
+    </dl></div>
+  </details>`;
+}
+
+function backupCard() {
+  const backup = loadLocalBackup();
+  if (!backup || !backup.profile) return '';
+  return `<section class="card mt-4">
+    <div class="card-head"><div>
+      <h2 class="card-title">Kopja lokale para zëvendësimit të fundit</h2>
+      <p class="card-sub">${backup.profile.checkins.length} ditë · ruajtur ${escapeHtml(formatDateLong(backup.savedAt.slice(0, 10)))}</p>
+    </div></div>
+    <button type="button" class="btn" data-restore-local>${icon('refresh', 16)} Rikthe këtë kopje</button>
+    <p class="card-note">Krijohet automatikisht sa herë që një import ose rikthim nga cloud zëvendëson të dhënat e tua. Rri vetëm në këtë pajisje.</p>
+  </section>`;
 }
 
 function row(label, value) {
@@ -141,6 +175,25 @@ function wire(container, app) {
       () => { app.resetToPrivate(); toast('Profili privat u nis', 'ok'); });
   });
 
+  const restore = container.querySelector('[data-restore-local]');
+  if (restore) {
+    restore.addEventListener('click', () => {
+      confirmDialog('Rikthe kopjen lokale',
+        'Të dhënat aktuale zëvendësohen me kopjen e ruajtur. Të dhënat aktuale bëhen kopja e re, që të mund të kthehesh sërish.',
+        `${icon('refresh', 15)} Rikthe`,
+        () => {
+          const backup = loadLocalBackup();
+          const current = app.profile;
+          backup.profile.consent = { ...current.consent };
+          backup.profile.sync = current.sync;
+          saveLocalBackup(current);
+          app.replaceProfile(backup.profile);
+          toast('Kopja lokale u rikthye', 'ok');
+          renderData(container, app);
+        });
+    });
+  }
+
   container.querySelector('[data-delete]').addEventListener('click', () => {
     confirmDialog('Fshij gjithçka',
       'Kjo heq të gjitha check-ins, MY 5 dhe lidhjet nga kjo pajisje. Nuk kthehen. Do të kthehesh te ekrani i consent-it.',
@@ -162,6 +215,7 @@ function showImportResult(report, result, app, container) {
   }
 
   const count = result.profile.checkins.length;
+  const conflicts = findConflicts(app.profile, result.profile);
   report.innerHTML = `<div class="card card-soft">
     <p style="font-size:var(--fs-sm)"><strong>${count}</strong> check-ins të vlefshme u gjetën
       ${result.warnings.length ? `, me ${result.warnings.length} vërejtje` : ''}.</p>
@@ -170,16 +224,30 @@ function showImportResult(report, result, app, container) {
       <div class="collapse-body"><ul class="facts">
         ${result.warnings.slice(0, 20).map(text => `<li class="fact fact-no"><span class="fact-ic">${icon('info', 14)}</span><span>${escapeHtml(text)}</span></li>`).join('')}
       </ul></div></details>` : ''}
+    ${conflicts.length ? `<p class="warn mt-3">${icon('info', 14)} ${conflicts.length} ${conflicts.length === 1 ? 'datë ekziston' : 'data ekzistojnë'} me vlera të ndryshme. "Bashko" i mban versionet e tua për këto data; "Zëvendëso" merr ato të fajllit.</p>` : ''}
     <div class="row" style="margin-top:var(--s4)">
-      <button type="button" class="btn btn-primary" data-confirm-import>${icon('check', 15)} Zëvendëso të dhënat e mia</button>
+      <button type="button" class="btn btn-primary" data-merge-import>${icon('plus', 15)} Bashko me të miat</button>
+      <button type="button" class="btn" data-confirm-import>${icon('refresh', 15)} Zëvendëso të dhënat e mia</button>
       <button type="button" class="btn" data-cancel-import>Anulo</button>
     </div>
+    <p class="card-note">"Bashko" shton vetëm ditët, personat dhe lidhjet që mungojnë — nuk mbishkruan asgjë. Para "Zëvendëso" ruhet automatikisht një kopje lokale që mund ta rikthesh.</p>
   </div>`;
 
   report.querySelector('[data-cancel-import]').addEventListener('click', () => { report.innerHTML = ''; });
+  report.querySelector('[data-merge-import]').addEventListener('click', () => {
+    const { profile, summary } = mergeProfiles(app.profile, result.profile);
+    profile.consent = { ...app.profile.consent };
+    app.replaceProfile(profile);
+    toast(`${summary.added} ditë u shtuan${summary.keptLocal ? `, ${summary.keptLocal} u mbajtën si i ke` : ''}`, 'ok');
+    renderData(container, app);
+  });
   report.querySelector('[data-confirm-import]').addEventListener('click', () => {
+    saveLocalBackup(app.profile);
+    // Pëlqimet dhe gjendja e sinkronizimit i përkasin kësaj pajisjeje, jo fajllit.
+    result.profile.consentLog = app.profile.consentLog;
+    result.profile.sync = app.profile.sync;
     app.replaceProfile(result.profile);
-    toast(`${count} check-ins u importuan`, 'ok');
+    toast(`${count} check-ins u importuan · kopja e mëparshme u ruajt`, 'ok');
     renderData(container, app);
   });
 }

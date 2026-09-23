@@ -17,8 +17,8 @@ const NEVER = [
   'Nuk të vendos diagnozë dhe nuk emërton asnjë gjendje mjekësore. Raporton vetëm sa lëvizën numrat e tu.',
   'Nuk dërgon asnjë mesazh, email apo njoftim në vend tëndin.',
   'Nuk të krahason me persona të tjerë apo me ndonjë standard.',
-  'Nuk ka llogari, server, analytics apo reklama.',
-  'Nuk i çon të dhënat askund — gjithçka rri në këtë pajisje.'
+  'Nuk ka analytics, reklama apo shitje të dhënash.',
+  'Pa llogari, nuk i çon të dhënat askund — gjithçka rri në këtë pajisje. Llogaria është opsionale dhe ruan vetëm një kopje të enkriptuar në pajisje.'
 ];
 
 export function renderConsent(container, app) {
@@ -86,7 +86,7 @@ function markup() {
           <div class="collapse-body stack">
             <p style="color:var(--text-2);font-size:var(--fs-sm)">
               Të dhënat ruhen vetëm në <strong>localStorage</strong> të këtij shfletuesi, nën një çelës të vetëm:
-              <code>ajemire.v1</code>. Nuk ka llogari dhe nuk kërkohet email. Mund t'i eksportosh ose t'i fshish të gjitha në çdo moment.
+              <code>ajemire.v1</code>. Llogaria me email është opsionale dhe mund ta shtosh më vonë, vetëm nëse do kopje rezervë. Mund t'i eksportosh ose t'i fshish të gjitha në çdo moment.
             </p>
             <ul class="facts">
               ${NEVER.map(text => `<li class="fact fact-no"><span class="fact-ic">${icon('close', 15)}</span><span>${text}</span></li>`).join('')}

@@ -1,15 +1,16 @@
 import { icon } from './ui.js';
 import { escapeHtml } from './format.js';
 
-// Prezantimi i udhëhequr: shtatë ndalesa, dy deri tre minuta.
+// Prezantimi i udhëhequr: tetë ndalesa, dy deri tre minuta.
 const STEPS = [
   { screen: 'data',    title: 'Profili sintetik',   note: '30 ditë të gjeneruara nga kodi. Asnjë e dhënë e një personi të vërtetë.' },
   { screen: 'normal',  title: 'My Normal',          note: 'Mesatarja jote nga 23 ditët bazë. Pika e krahasimit, jo një normë e përgjithshme.' },
   { screen: 'changed', title: 'Something Changed',  note: 'Katër nga gjashtë matjet lëvizën më shumë se zakonisht gjatë shtatë ditëve të fundit.' },
   { screen: 'why',     title: 'Why?',               note: 'Cilat matje lëvizën bashkë. Shoqërim në të dhënat e tua, jo shkak.' },
   { screen: 'helps',   title: 'What Helps Me?',     note: 'Aktivitetet e renditura sipas ditëve reale pas tyre, jo sipas sugjerimeve të përgjithshme.' },
-  { screen: 'kafe',    title: 'KAFE?',              note: 'Një hap i vogël social. Sistemi përgatit draftin; dërgimin e bën vetë njeriu.' },
-  { screen: 'wall',    title: 'Connection Wall',    note: 'Njerëzit e zgjedhur vetë, pa pikë dhe pa renditje sipas rëndësisë.' }
+  { screen: 'kafe',    title: 'Lidhjet · KAFE?',    note: 'Një hap i vogël social. Sistemi përgatit draftin; dërgimin e bën vetë njeriu.' },
+  { screen: 'wall',    title: 'Lidhjet · Wall',     note: 'Njerëzit e zgjedhur vetë, pa pikë dhe pa renditje sipas rëndësisë.' },
+  { screen: 'privacy', title: 'Privatësia',         note: 'Pa llogari asgjë nuk largohet nga pajisja. Llogaria opsionale ruan vetëm një kopje të enkriptuar në pajisje.' }
 ];
 
 let index = 0;

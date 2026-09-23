@@ -24,11 +24,11 @@ Momenti qendror i produktit:
 | **Something Changed** | Cilat matje lëvizën, sa, dhe krahasimi vizual normale kundrejt tani. |
 | **Why?** | Korrelacione, lidhje me vonesë një ditë, mesatare me kusht, fjalët kryesore të shënimeve. |
 | **What Helps Me?** | Aktivitetet e renditura sipas provës në të dhënat e tua, plus reflektimi javor. |
-| **MY 5** | Deri në pesë persona të shkruar me dorë. Pa import kontaktesh, pa renditje sipas rëndësisë. |
-| **KAFE?** | Një hap i vogël social plus Message Composer me katër tone. |
-| **Connection Wall** | Harta e lidhjeve, historiku, dhe momentet nga check-ins. |
-| **Të dhënat e mia** | Përmbledhje, eksport, import me validim, rinisje, fshirje e plotë. |
-| **Prezantim i udhëhequr** | Shtatë ndalesa, dy deri tre minuta, me back, next dhe progres. |
+| **Lidhjet** | MY 5, KAFE? dhe Connection Wall nën një tab. Pa import kontaktesh, pa renditje sipas rëndësisë. |
+| **Të dhënat e mia** | Përmbledhje, historiku i pëlqimeve, eksport, import (zëvendëso ose bashko), kopje lokale para zëvendësimit. |
+| **Llogaria** *(opsionale)* | Email + verifikim, hyrje/dalje, rivendosje fjalëkalimi, dalje nga të gjitha pajisjet, Qendra e sinkronizimit, tri fshirje të ndara. |
+| **Privatësia** | Privatësia, Kushtet, Ndihma, ndryshimet dhe "Raporto një problem". |
+| **Prezantim i udhëhequr** | Tetë ndalesa, dy deri tre minuta, me back, next dhe progres. |
 
 ---
 
@@ -39,14 +39,16 @@ Momenti qendror i produktit:
 - **Nuk dërgon asgjë automatikisht.** Maksimumi që bën është të përgatisë një draft dhe ta kopjojë në clipboard. Dërgimin e bën njeriu.
 - **Nuk shkruan asgjë pa consent.** `saveProfile()` te `js/storage.js` del pa bërë asgjë nëse `consent.store !== true`. Kjo është e vetmja rrugë shkrimi.
 - **Nuk përdor të dhëna reale.** Profili demo gjenerohet nga `js/seed.js` me farë fikse. Kjo shkruhet e dukshme në ekran.
-- **Nuk i çon të dhënat askund.** Pa server, pa llogari, pa analytics, pa API të jashtme, pa font të jashtëm.
+- **Pa llogari, nuk i çon të dhënat askund.** Asnjë kërkesë rrjeti. Pa analytics, pa reklama, pa font të jashtëm.
+- **Me llogari, serveri sheh vetëm tekst të enkriptuar.** Shih "Pilot publik" më poshtë.
 - **Nuk të krahason me persona të tjerë** dhe nuk pretendon se korrelacioni provon shkakun.
 
 ---
 
 ## Teknologjia
 
-HTML + CSS + JavaScript me ES modules. Pa framework, pa build step, pa npm, pa bundler, pa backend.
+HTML + CSS + JavaScript me ES modules, pa framework. Vite përdoret vetëm për bashkimin e moduleve dhe variablat e mjedisit;
+e vetmja varësi runtime është `@supabase/supabase-js`, dhe ngarkohet vetëm kur përdoruesi hap Llogarinë.
 Grafikat janë SVG i shkruar me dorë. CSS-ja është e shkruar me dorë, me variabla.
 
 ```
@@ -161,3 +163,42 @@ AJM.patterns.somethingChanged(AJM.app.profile.checkins, AJM.app.profile.settings
 ## Deploy
 
 Static site në Vercel, pa build command. Çdo fajll shërbehet ashtu siç është.
+
+
+---
+
+## Pilot publik (v2.0)
+
+### Arkitektura
+- **Local-first.** Pajisja është burimi kryesor. Pa llogari, aplikacioni nuk kontakton asnjë server.
+- **Supabase Auth + Postgres** (projekt `a-je-mire`, BE/Frankfurt). Vetëm email + fjalëkalim, pa hyrje sociale.
+  Fjalëkalimet i menaxhon Supabase Auth — aplikacioni nuk i ruan kurrë vetë.
+- **Kopje e enkriptuar në pajisje** (`js/cloud/crypto.js`): AES-GCM 256, çelës nga PBKDF2-SHA256 me 600 000 përsëritje,
+  kripë 16 bajt dhe IV 12 bajt të rastësishme në çdo ruajtje. Fjalëkalimi i sinkronizimit është i ndarë nga ai i llogarisë,
+  mbahet vetëm në memorien e faqes dhe nuk dërgohet kurrë. E quajmë "enkriptim në anën e klientit", jo "end-to-end".
+- **Sinkronizimi** (`js/cloud/sync.js`, `js/merge.js`): asgjë automatike. Funksioni `save_backup` në Postgres kontrollon revizionin
+  në mënyrë atomike; nëse një pajisje tjetër ka ruajtur ndërkohë, kthen konflikt në vend që të mbishkruajë. Konfliktet e së njëjtës datë
+  shfaqen krah për krah dhe i zgjidh përdoruesi.
+- **Fshirja e llogarisë** bëhet nga Edge Function `delete-account` — çelësi service-role jeton vetëm aty, kurrë në shfletues.
+
+### Baza e të dhënave
+`supabase/migrations/` — tabelat `profiles`, `encrypted_backups` (një rresht për përdorues), `consent_records`, me RLS aktiv:
+çdo përdorues lexon dhe shkruan vetëm rreshtat e vet.
+`supabase/tests/rls_isolation.sql` — testi i automatizuar i izolimit: përdoruesi B nuk sheh, nuk ndryshon, nuk fshin
+dhe nuk krijon asgjë për A-në; revizioni i vjetër jep konflikt. Ekzekutohet në transaksion që kthehet mbrapsht.
+
+### PWA dhe siguria
+- `pwa/sw.js` ruan vetëm guaskën (HTML/CSS/JS/ikona) të së njëjtës origjinë. Kërkesat te Supabase, çdo kërkesë me `Authorization`,
+  dhe të dhënat e dekriptuara nuk kalojnë kurrë nga cache. Versioni i ri shfaq njoftim "Rifresko".
+- `vercel.json`: CSP e rreptë (`script-src 'self'`, `connect-src` vetëm drejt projektit Supabase, `frame-ancestors 'none'`),
+  `Referrer-Policy: no-referrer`, `Permissions-Policy` që ndalon kamerën, mikrofonin dhe vendndodhjen, HSTS, nosniff.
+
+### Nisja lokale
+```
+npm ci
+cp .env.example .env.local   # plotëso dy vlerat publike
+npm run dev                  # http://localhost:5173
+npm test                     # teste për enkriptimin, bashkimin dhe consent-in
+npm run build && npm run preview
+npm audit
+```

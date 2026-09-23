@@ -231,6 +231,11 @@ function wire(container, app) {
     copyButton.addEventListener('click', async () => {
       const done = await copyText(textarea.value);
       toast(done ? 'Teksti u kopjua. Dërgoje ti kur të duash.' : 'Kopjimi nuk u lejua nga shfletuesi', done ? 'ok' : 'err');
+      if (done) {
+        // Konfirmim i dukshëm mbi vetë butonin, jo vetëm një toast që zhduket.
+        copyButton.innerHTML = `${icon('check', 16)} U kopjua`;
+        setTimeout(() => { if (copyButton.isConnected) copyButton.innerHTML = `${icon('copy', 16)} Kopjo tekstin`; }, 2500);
+      }
     });
   }
 
