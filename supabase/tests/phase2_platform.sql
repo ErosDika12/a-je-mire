@@ -40,7 +40,7 @@ begin
   -- ---------- njoftimet ----------
   -- Pa pëlqim: kërkesa e lidhjes nuk krijon njoftim
   perform pg_temp.as_user(p); perform public.request_connection('Arta');
-  perform pg_temp.as_system(); select count(*) into n from public.notifications; if n <> 0 then raise exception 'FAIL: notification without consent'; end if;
+  perform pg_temp.as_system(); select count(*) into n from public.notifications where user_id = a; if n <> 0 then raise exception 'FAIL: notification without consent'; end if;
   delete from public.connections;
   -- Me pëlqim për atë kategori: krijohet, pa asnjë përmbajtje
   perform pg_temp.as_user(a);
@@ -99,7 +99,10 @@ begin
   if left_ <> 24 then raise exception 'FAIL: plus quota %', left_; end if;
 
   -- ---------- analitika ----------
-  perform pg_temp.as_anon();
+  -- Pa hyrje: funksioni nuk thirret fare (migrimi anon_function_hardening).
+  begin perform pg_temp.as_anon(); ok := public.track_event('screen_opened', '{}', '2.1.0', 'mobile'); raise exception 'FAIL: anon tracked event';
+  exception when others then if sqlerrm like 'FAIL%' then raise; end if; end;
+  perform pg_temp.as_user(a);
   ok := public.track_event('screen_opened', '{"screen": "dashboard"}', '2.1.0', 'mobile');
   if not ok then raise exception 'FAIL: allowed event rejected'; end if;
   begin ok := public.track_event('screen_opened', '{"screen": "dashboard", "mood": 3}', '2.1.0', 'mobile'); raise exception 'FAIL: metric value accepted';
@@ -108,9 +111,9 @@ begin
   exception when others then if sqlerrm like 'FAIL%' then raise; end if; end;
   begin ok := public.track_event('screen_opened', '{"screen": "Arta Berisha"}', '2.1.0', 'mobile'); raise exception 'FAIL: free text accepted';
   exception when others then if sqlerrm like 'FAIL%' then raise; end if; end;
-  select count(*) into n from public.analytics_events; if n <> 0 then raise exception 'FAIL: anon reads analytics'; end if;
+  select count(*) into n from public.analytics_events; if n <> 0 then raise exception 'FAIL: user reads analytics'; end if;
   perform pg_temp.as_system(); update public.feature_flags set server_enabled = false where key = 'analytics';
-  perform pg_temp.as_anon(); ok := public.track_event('screen_opened', '{}', '2.1.0', 'mobile');
+  perform pg_temp.as_user(a); ok := public.track_event('screen_opened', '{}', '2.1.0', 'mobile');
   if ok then raise exception 'FAIL: analytics while disabled'; end if;
 
   -- ---------- administrimi ----------

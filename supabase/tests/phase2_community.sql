@@ -120,12 +120,13 @@ begin
   perform pg_temp.as_user(a); select count(*) into n from public.reports; if n <> 0 then raise exception 'FAIL: A sees report about them'; end if;
   perform pg_temp.as_user(m);
   select count(*) into n from public.reports; if n <> 0 then raise exception 'FAIL: moderator reads reports table directly'; end if;
-  select count(*) into n from public.mod_list_reports(); if n <> 1 then raise exception 'FAIL: moderator queue %', n; end if;
+  -- Vetëm ky raport; baza mund të ketë raporte të tjera të hapura, prandaj nuk numërojmë gjithë radhën.
+  select count(*) into n from public.mod_list_reports() r where r.id = rid; if n <> 1 then raise exception 'FAIL: moderator queue %', n; end if;
   j := public.mod_open_report(rid);
   if j -> 'snapshot' ->> 'body' <> 'Postimi i parë' then raise exception 'FAIL: snapshot'; end if;
   perform public.mod_resolve_report(rid, 'remove', 'test');
   perform pg_temp.as_system();
-  select count(*) into n from public.audit_events where action in ('report.open', 'report.resolve'); if n <> 2 then raise exception 'FAIL: audit %', n; end if;
+  select count(*) into n from public.audit_events where action in ('report.open', 'report.resolve') and target_id = rid::text; if n <> 2 then raise exception 'FAIL: audit %', n; end if;
   perform pg_temp.as_user(b); select count(*) into n from public.posts where id = post_a; if n <> 0 then raise exception 'FAIL: removed post visible'; end if;
   perform pg_temp.as_user(a); select to_jsonb(status) into j from public.posts where id = post_a;
   if j #>> '{}' <> 'removed' then raise exception 'FAIL: author cannot see moderation status'; end if;
