@@ -1,0 +1,13 @@
+select cron.unschedule('ajm-analytics-retention');
+drop function if exists public.admin_audit(bigint, integer);
+drop function if exists public.admin_list_staff();
+drop function if exists public.mask_email(text);
+drop function if exists public.analytics_summary(integer);
+drop function if exists public.track_event(text, jsonb, text, text);
+drop function if exists public.valid_analytics_props(jsonb);
+drop table if exists public.analytics_events;
+drop function if exists public.ai_consume();
+drop table if exists public.ai_usage;
+alter table public.consent_records drop constraint if exists consent_records_kind_check;
+delete from public.consent_records where kind not in ('local_storage', 'cloud_backup', 'terms', 'privacy');
+alter table public.consent_records add constraint consent_records_kind_check check (kind in ('local_storage', 'cloud_backup', 'terms', 'privacy'));
