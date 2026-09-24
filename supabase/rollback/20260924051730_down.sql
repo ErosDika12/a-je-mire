@@ -1,0 +1,17 @@
+select cron.unschedule('ajm-scheduled-notifications');
+select cron.unschedule('ajm-dispatch-notifications');
+select cron.unschedule('ajm-retention');
+drop trigger if exists messages_notify on public.messages;
+drop trigger if exists connections_notify on public.connections;
+drop function if exists public.messages_notify();
+drop function if exists public.connections_notify();
+drop function if exists public.generate_scheduled_notifications();
+drop function if exists public.enqueue_notification(uuid, text, text);
+drop function if exists public.mark_notifications_read();
+drop table if exists public.notifications;
+drop table if exists public.push_subscriptions;
+drop function if exists public.push_subscriptions_guard();
+drop table if exists public.notification_prefs;
+drop function if exists public.notification_prefs_guard();
+drop function if exists public.valid_notification_categories(jsonb);
+drop function if exists public.service_get_secret(text);
