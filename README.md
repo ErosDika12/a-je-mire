@@ -39,7 +39,7 @@ Momenti qendror i produktit:
 - **Nuk dërgon asgjë automatikisht.** Maksimumi që bën është të përgatisë një draft dhe ta kopjojë në clipboard. Dërgimin e bën njeriu.
 - **Nuk shkruan asgjë pa consent.** `saveProfile()` te `js/storage.js` del pa bërë asgjë nëse `consent.store !== true`. Kjo është e vetmja rrugë shkrimi.
 - **Nuk përdor të dhëna reale.** Profili demo gjenerohet nga `js/seed.js` me farë fikse. Kjo shkruhet e dukshme në ekran.
-- **Pa llogari, nuk i çon të dhënat askund.** Asnjë kërkesë rrjeti. Pa analytics, pa reklama, pa font të jashtëm.
+- **Pa llogari, nuk i çon të dhënat askund.** Asnjë kërkesë rrjeti. Pa reklama, pa font të jashtëm. Analitika anonime ekziston vetëm për llogaritë që e ndezin vetë (fikur si parazgjedhje).
 - **Me llogari, serveri sheh vetëm tekst të enkriptuar.** Shih "Pilot publik" më poshtë.
 - **Nuk të krahason me persona të tjerë** dhe nuk pretendon se korrelacioni provon shkakun.
 
@@ -162,7 +162,8 @@ AJM.patterns.somethingChanged(AJM.app.profile.checkins, AJM.app.profile.settings
 
 ## Deploy
 
-Static site në Vercel, pa build command. Çdo fajll shërbehet ashtu siç është.
+Vercel me `npm run build` (Vite) → `dist/`. `VITE_APP_ENV` vendoset sipas mjedisit (`production` / `preview`)
+dhe përcakton tavanin e flamujve në `js/flags.js`.
 
 
 ---
@@ -202,3 +203,12 @@ npm test                     # teste për enkriptimin, bashkimin dhe consent-in
 npm run build && npm run preview
 npm audit
 ```
+
+---
+
+## Faza 2 (v2.1)
+
+Komunitet privat, lidhje, mesazhe, sfida, ndarje me mentor, njoftime, asistent AI, abonime, analitikë me pëlqim,
+administrim me role dhe auditim, shqip + anglisht. Çdo modul është pas një flamuri të zbatuar nga baza.
+Gjendja në prodhim, politika e moderimit, deklarata e enkriptimit dhe veprimet që kërkojnë njeriun:
+**[docs/PHASE_2.md](docs/PHASE_2.md)**.
