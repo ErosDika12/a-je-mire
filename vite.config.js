@@ -22,7 +22,11 @@ function serviceWorker() {
 }
 
 export default defineConfig({
-  build: { outDir: 'dist', sourcemap: false, target: 'es2020' },
+  build: {
+    outDir: 'dist', sourcemap: false, target: 'es2020',
+    // Libraria e Supabase në pjesë të veçantë: ndryshon rrallë, prandaj mbetet në cache mes versioneve.
+    rollupOptions: { output: { manualChunks: id => (id.includes('node_modules') ? 'vendor' : undefined) } }
+  },
   server: { port: 5173 },
   plugins: [serviceWorker()]
 });
