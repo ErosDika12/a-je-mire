@@ -95,3 +95,6 @@ Stripe Checkout dhe Customer Portal të mbajtura jashtë; webhook me verifikim n
 | `tests/e2e/phase2.mjs` | 53 kontrolle me katër përdorues, përfshirë axe (WCAG 2 A/AA) dhe celularin |
 | `tests/e2e/i18n-sweep.mjs` | Çdo ekran në anglisht: asnjë tekst shqip, asnjë gabim në konsolë |
 | `tests/e2e/webhook.mjs` | Nënshkrimi, idempotenca dhe hiri i webhook-ut të Stripe |
+| `tests/e2e/themes.mjs` | Temat pastel dhe të personalizuara, pa dëgjues të dyfishtë, a11y |
+| `tests/e2e/production.mjs` | Prodhimi: modulet e fikura nuk arrihen as nga UI, as nga API (edhe me qasje pilot); rifreskim pa cache; konsola |
+| `tests/e2e/delete-accounts.mjs` | Fshirja e llogarisë përmes ndërfaqes; të dhënat lokale mbeten |
