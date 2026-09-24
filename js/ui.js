@@ -47,7 +47,12 @@ const ICON_PATHS = {
   doc: '<path d="M7 3.6h7l4 4v12.8H7z"/><path d="M14 3.6v4h4"/><path d="M9.6 12.4h5.6M9.6 15.8h5.6"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.4M12 7.8h.01"/>',
   refresh: '<path d="M20 11.6A8 8 0 1 0 18.4 17"/><path d="M20.4 4.6v5.2h-5.2"/>',
-  calendar: '<rect x="4" y="5.6" width="16" height="14.4" rx="2.4"/><path d="M4 10.4h16M8.6 3.6v3.6M15.4 3.6v3.6"/>'
+  calendar: '<rect x="4" y="5.6" width="16" height="14.4" rx="2.4"/><path d="M4 10.4h16M8.6 3.6v3.6M15.4 3.6v3.6"/>',
+  heart: '<path d="M12 20s-7.2-4.4-9-8.6C1.6 8.4 3.2 5 6.6 5 8.6 5 10 6.2 12 8.2 14 6.2 15.4 5 17.4 5 20.8 5 22.4 8.4 21 11.4 19.2 15.6 12 20 12 20z"/>',
+  star: '<path d="m12 3.4 2.1 5.4 5.8.3-4.5 3.6 1.6 5.6L12 15.4 6.9 18.3 8.6 12.7 4.1 9.1l5.8-.3z"/>',
+  flower: '<circle cx="12" cy="12" r="2"/><path d="M12 5.2a2.4 2.4 0 1 1 0 4.6 2.4 2.4 0 1 1 0-4.6zM12 14.2a2.4 2.4 0 1 1 0 4.6 2.4 2.4 0 1 1 0-4.6zM5.2 12a2.4 2.4 0 1 1 4.6 0 2.4 2.4 0 1 1-4.6 0zM14.2 12a2.4 2.4 0 1 1 4.6 0 2.4 2.4 0 1 1-4.6 0z"/>',
+  leaf: '<path d="M5 19s1.2-8.2 8.6-11.6C19.4 4.8 20.4 7 19 13.4 16.4 19.4 9.8 19.8 5 19z"/><path d="M8.2 15.6c2.2-2.4 4.8-4 8.2-5.4"/>',
+  palette: '<path d="M12 4a8 8 0 1 0 0 16c.8 0 1.4-.6 1.4-1.4 0-.4-.1-.7-.4-1-.3-.3-.4-.6-.4-1 0-.8.6-1.4 1.4-1.4h1.6A4 4 0 0 0 20 12 8 8 0 0 0 12 4z"/><circle cx="8.2" cy="10.2" r="1"/><circle cx="10.4" cy="7.6" r="1"/><circle cx="14.2" cy="7.6" r="1"/><circle cx="8.2" cy="13.8" r="1"/>'
 };
 
 export function icon(name, size = 18) {
@@ -64,15 +69,110 @@ export function metricIcon(metric, variant = '') {
 
 // ---------- tema ----------
 
-export function applyTheme(theme) {
+export const THEME_OPTIONS = [
+  { id: 'pink', label: 'Pastel Pink', icon: 'heart' },
+  { id: 'blue', label: 'Pastel Blue', icon: 'cloud' },
+  { id: 'yellow', label: 'Pastel Yellow', icon: 'star' },
+  { id: 'purple', label: 'Pastel Purple', icon: 'flower' },
+  { id: 'green', label: 'Pastel Green', icon: 'leaf' },
+  { id: 'dark', label: 'Temë e errët', icon: 'moon' },
+  { id: 'light', label: 'Temë e çelët', icon: 'sun' },
+  { id: 'auto', label: 'Tema sipas sistemit', icon: 'auto' }
+];
+
+const SYSTEM_IDS = ['dark', 'light', 'auto'];
+const PASTEL_IDS = ['pink', 'blue', 'yellow', 'purple', 'green'];
+
+export const CUSTOM_FIELDS = [
+  { key: 'bg', css: '--bg', label: 'Main Background Color' },
+  { key: 'bgAlt', css: '--bg-alt', label: 'Secondary Background Color' },
+  { key: 'accent', css: '--accent', label: 'Primary Accent Color' },
+  { key: 'accentSoft', css: '--accent-soft', label: 'Secondary Accent Color' },
+  { key: 'surface', css: '--surface', label: 'Card Background Color' },
+  { key: 'text', css: '--text', label: 'Text Color' },
+  { key: 'button', css: '--btn', label: 'Button Color' },
+  { key: 'buttonText', css: '--btn-ink', label: 'Button Text Color' },
+  { key: 'border', css: '--border', label: 'Border Color' }
+];
+
+export const DEFAULT_CUSTOM = {
+  bg: '#f7f3fb',
+  bgAlt: '#eee6f5',
+  accent: '#a78bbf',
+  accentSoft: '#e8ddf2',
+  surface: '#fffcfe',
+  text: '#32283c',
+  button: '#a78bbf',
+  buttonText: '#ffffff',
+  border: '#ddd0e8'
+};
+
+const NAMED_THEMES = new Set(['light', 'dark', 'pink', 'blue', 'yellow', 'purple', 'green', 'custom']);
+const THEME_META = {
+  light: '#f3f4f1',
+  dark: '#0d1219',
+  pink: '#faf8f8',
+  blue: '#f7f8fa',
+  yellow: '#fafaf6',
+  purple: '#f8f7f9',
+  green: '#f7f8f6'
+};
+
+export function isCustomThemeId(theme) {
+  return theme === 'custom' || String(theme || '').startsWith('custom:');
+}
+
+export function customThemeKey(theme) {
+  if (!theme) return null;
+  if (theme === 'custom') return 'legacy';
+  if (String(theme).startsWith('custom:')) return theme.slice(7);
+  return null;
+}
+
+export function normalizeCustomThemes(settings) {
+  if (!settings || typeof settings !== 'object') return [];
+  if (Array.isArray(settings.customThemes)) {
+    return settings.customThemes.filter(item => item && item.id && item.colors).map(item => ({
+      id: String(item.id),
+      name: String(item.name || 'Custom Theme').slice(0, 40),
+      colors: { ...DEFAULT_CUSTOM, ...item.colors }
+    }));
+  }
+  if (settings.customTheme && typeof settings.customTheme === 'object') {
+    return [{ id: 'legacy', name: 'Custom Theme', colors: { ...DEFAULT_CUSTOM, ...settings.customTheme } }];
+  }
+  return [];
+}
+
+function clearCustomVars(root) {
+  for (const field of CUSTOM_FIELDS) root.style.removeProperty(field.css);
+}
+
+function applyCustomVars(root, colors) {
+  const palette = { ...DEFAULT_CUSTOM, ...(colors || {}) };
+  for (const field of CUSTOM_FIELDS) {
+    root.style.setProperty(field.css, palette[field.key]);
+  }
+}
+
+export function applyTheme(theme, customColors) {
   const root = document.documentElement;
-  if (theme === 'light' || theme === 'dark') root.setAttribute('data-theme', theme);
+  clearCustomVars(root);
+  if (theme === 'auto' || !theme) root.removeAttribute('data-theme');
+  else if (NAMED_THEMES.has(theme) && theme !== 'custom') root.setAttribute('data-theme', theme);
+  else if (isCustomThemeId(theme)) {
+    root.setAttribute('data-theme', 'custom');
+    applyCustomVars(root, customColors);
+  }
   else root.removeAttribute('data-theme');
+
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
-    const dark = theme === 'dark'
-      || (theme !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    meta.setAttribute('content', dark ? '#0d1219' : '#f3f4f1');
+    let color = THEME_META.light;
+    if (isCustomThemeId(theme)) color = (customColors && customColors.bg) || DEFAULT_CUSTOM.bg;
+    else if (THEME_META[theme]) color = THEME_META[theme];
+    else if (theme !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches) color = THEME_META.dark;
+    meta.setAttribute('content', color);
   }
 }
 
@@ -82,16 +182,44 @@ export function nextTheme(current) {
   return 'auto';
 }
 
-export function themeLabel(theme) {
-  if (theme === 'light') return 'Temë e çelët';
-  if (theme === 'dark') return 'Temë e errët';
+export function themeLabel(theme, customThemes = []) {
+  if (isCustomThemeId(theme)) {
+    const key = customThemeKey(theme);
+    const found = customThemes.find(item => item.id === key);
+    return found ? found.name : 'Custom Theme';
+  }
+  const found = THEME_OPTIONS.find(item => item.id === theme);
+  if (found) return found.label;
   return 'Tema sipas sistemit';
 }
 
 export function themeIcon(theme) {
-  if (theme === 'dark') return 'moon';
-  if (theme === 'light') return 'sun';
+  if (isCustomThemeId(theme)) return 'palette';
+  const found = THEME_OPTIONS.find(item => item.id === theme);
+  if (found) return found.icon;
   return 'auto';
+}
+
+export function themeButtonsHtml(customThemes = []) {
+  const chip = (id, label, iconName, extraClass = '') =>
+    `<button type="button" class="theme-chip is-${id} ${extraClass}" data-theme-id="${id}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">${icon(iconName, 16)}</button>`;
+
+  const pastels = THEME_OPTIONS.filter(item => PASTEL_IDS.includes(item.id))
+    .map(item => chip(item.id, item.label, item.icon)).join('');
+
+  const saved = customThemes.map(item => {
+    const id = `custom:${item.id}`;
+    return `<span class="theme-custom-item">
+      <button type="button" class="theme-chip is-custom" data-theme-id="${id}" title="${escapeHtml(item.name)}" aria-label="${escapeHtml(item.name)}">${icon('palette', 16)}</button>
+      <button type="button" class="theme-chip-more" data-custom-menu="${item.id}" aria-label="Opsionet e ${escapeHtml(item.name)}">${icon('more', 10)}</button>
+    </span>`;
+  }).join('');
+
+  const create = `<button type="button" class="theme-chip is-create" data-theme-create title="Krijo Custom Theme" aria-label="Krijo Custom Theme">${icon('plus', 16)}</button>`;
+  const modes = THEME_OPTIONS.filter(item => SYSTEM_IDS.includes(item.id))
+    .map(item => chip(item.id, item.label, item.icon)).join('');
+
+  return pastels + saved + create + modes;
 }
 
 // ---------- toast ----------
