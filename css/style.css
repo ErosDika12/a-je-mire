@@ -895,3 +895,54 @@ pre.json {
 @media (min-width: 1024px) { .update-notice { bottom: var(--s5); } }
 
 .row-between .btn-sm { flex: none; }
+
+/* ---------- Faza 2: komuniteti, rrjeti, sfidat, mentori, administrimi ---------- */
+.avatar-svg { flex: none; border-radius: 12px; }
+.post-body { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+.reaction-row { gap: var(--s2); flex-wrap: wrap; }
+.replies { margin-top: var(--s3); padding-top: var(--s3); border-top: 1px solid var(--border); display: grid; gap: var(--s3); }
+.reply { padding: var(--s2) var(--s3); background: var(--surface-2); border-radius: 10px; }
+.list-row { padding: var(--s3) 0; border-bottom: 1px solid var(--border); gap: var(--s3); flex-wrap: wrap; }
+.list-row:last-child { border-bottom: 0; }
+.linklike { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; }
+
+.conv-row { display: flex; gap: var(--s3); align-items: center; width: 100%; padding: var(--s3); border: 0; border-bottom: 1px solid var(--border);
+  background: none; color: inherit; text-align: left; cursor: pointer; min-height: 56px; font: inherit; }
+.conv-row:hover { background: var(--surface-2); }
+.conv-main { flex: 1; min-width: 0; display: grid; }
+.conv-preview { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.conv-side { display: grid; justify-items: end; gap: 4px; flex: none; }
+
+.message-list { list-style: none; margin: var(--s3) 0 0; padding: 0; display: grid; gap: var(--s2); max-height: min(60vh, 520px); overflow-y: auto; overscroll-behavior: contain; }
+.bubble { max-width: 82%; padding: var(--s2) var(--s3); border-radius: 14px; background: var(--surface-2); justify-self: start; }
+.bubble.mine { justify-self: end; background: color-mix(in srgb, var(--accent) 14%, var(--surface)); }
+.bubble-meta { display: flex; gap: 6px; font-size: 12px; color: var(--text-2); margin-top: 2px; }
+/* Fusha e shkrimit mbetet në fund edhe kur hapet tastiera e celularit. */
+.composer { position: sticky; bottom: calc(76px + env(safe-area-inset-bottom)); display: flex; gap: var(--s2); align-items: flex-end;
+  margin-top: var(--s3); padding: var(--s2) 0; background: var(--surface); }
+.composer textarea { flex: 1; min-width: 0; resize: none; max-height: 160px; }
+@media (min-width: 1024px) { .composer { bottom: 0; } }
+
+.challenge { padding: var(--s3); border: 1px solid var(--border); border-radius: 12px; }
+.challenge.is-done { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.progress-bar { height: 8px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+.progress-bar span { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .4s ease; }
+.achievement-list { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--s2); }
+.achievement { display: flex; justify-content: space-between; align-items: center; gap: var(--s3); flex-wrap: wrap; color: var(--text-3); }
+.achievement.is-earned { color: var(--text); }
+.celebrate { border-color: var(--accent); animation: ajm-pop .6s ease-out; }
+@keyframes ajm-pop { 0% { transform: scale(.96); opacity: .4; } 60% { transform: scale(1.02); } 100% { transform: scale(1); opacity: 1; } }
+
+.invite-code { font: 700 28px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; text-align: center; margin: var(--s4) 0;
+  padding: var(--s3); background: var(--surface-2); border-radius: 12px; user-select: all; }
+.table-wrap { overflow-x: auto; max-width: 100%; }
+.data-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+.data-table th, .data-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+.data-table thead th { color: var(--text-2); font-weight: 600; }
+.is-unread { font-weight: 650; }
+.data-table input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--accent); }
+
+@media (prefers-reduced-motion: reduce) {
+  .celebrate { animation: none; }
+  .progress-bar span { transition: none; }
+}

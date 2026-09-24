@@ -39,3 +39,26 @@ self.addEventListener('fetch', event => {
     event.respondWith(caches.match(url.pathname).then(hit => hit || fetch(request)));
   }
 });
+
+// Web Push: titulli dhe teksti janë të përgjithshëm (pa vlera, pa shënime, pa tekst mesazhi).
+self.addEventListener('push', event => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (error) { data = {}; }
+  const title = typeof data.title === 'string' ? data.title.slice(0, 60) : 'A JE MIRË?';
+  const body = typeof data.body === 'string' ? data.body.slice(0, 160) : '';
+  event.waitUntil(self.registration.showNotification(title, {
+    body, tag: typeof data.tag === 'string' ? data.tag : 'ajm', icon: '/icon-192.png', badge: '/icon-192.png',
+    data: { url: typeof data.url === 'string' && data.url.startsWith('/') ? data.url : '/' }
+  }));
+});
+
+// Klikimi hap aplikacionin — vetëm adresa brenda vetë aplikacionit.
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const target = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin).href;
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    const open = list.find(client => client.url.startsWith(self.location.origin));
+    if (open) { open.navigate(target); return open.focus(); }
+    return self.clients.openWindow(target);
+  }));
+});

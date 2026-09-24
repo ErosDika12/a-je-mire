@@ -2,8 +2,10 @@
 // Pa llogari, aplikacioni nuk kontakton asnjë server.
 import { createClient } from '@supabase/supabase-js';
 
-const URL = import.meta.env.VITE_SUPABASE_URL;
-const KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+// import.meta.env ekziston vetëm nën Vite; testet në Node e kalojnë si bosh.
+const ENV = import.meta.env || {};
+const URL = ENV.VITE_SUPABASE_URL;
+const KEY = ENV.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 let client = null;
 let allowPersist = false;
