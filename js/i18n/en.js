@@ -8,12 +8,12 @@ export default {
     actions: 'Actions', loading: 'Loading…', loadMore: 'Show more'
   },
   nav: {
-    dashboard: 'Today', checkin: 'Check-in', challenges: 'Challenges', normal: 'My Normal', changed: 'Something Changed',
+    dashboard: 'Today', mira: 'MIRA', checkin: 'Check-in', challenges: 'Challenges', normal: 'My Normal', changed: 'Something Changed',
     why: 'Why?', patterns: 'Patterns', helps: 'What Helps Me?', assistant: 'Assistant', connect: 'My people',
     community: 'Community', network: 'Network', mentor: 'Mentor', data: 'My data', account: 'Account',
     notifications: 'Notifications', subscription: 'Plus', privacy: 'Privacy', admin: 'Administration',
     group_you: 'You', group_patterns: 'Patterns', group_people: 'People', group_privacy: 'Privacy', group_staff: 'Staff',
-    short_dashboard: 'Today', short_normal: 'Normal', short_patterns: 'Patterns', short_connect: 'People',
+    short_dashboard: 'Today', short_mira: 'MIRA', short_normal: 'Normal', short_patterns: 'Patterns', short_connect: 'People',
     more: 'More', settings: 'Settings', tour: 'Guided tour', theme: 'Theme'
   },
   shell: {

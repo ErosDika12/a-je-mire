@@ -20,6 +20,7 @@ import { renderConnect, setConnectTab } from './screens/connect.js';
 import { renderData } from './screens/data.js';
 import { renderAccount, initAuth } from './screens/account.js';
 import { renderPrivacy } from './screens/privacy.js';
+import { renderMira } from './screens/mira.js';
 
 // Modulet e Fazës 2 ngarkohen vetëm kur hapen (dhe vetëm kur flamuri i lejon). Service worker-i
 // i ruan edhe këto pjesë, prandaj punojnë offline pas vizitës së parë.
@@ -43,9 +44,10 @@ import * as patterns from './patterns.js';
 // "roles": edhe roli në bazë (jo në metadata të klientit) duhet të përputhet.
 const SCREENS = [
   { id: 'dashboard',     icon: 'today',    group: 'you',      render: renderDashboard, primary: true },
+  { id: 'mira',          icon: 'heart',    group: 'you',      render: renderMira,      primary: true },
   { id: 'checkin',       icon: 'check',    group: 'you',      render: renderCheckin },
   { id: 'challenges',    icon: 'spark',    group: 'you',      render: renderChallenges, flag: 'challenges' },
-  { id: 'normal',        icon: 'normal',   group: 'patterns', render: renderNormal,    primary: true },
+  { id: 'normal',        icon: 'normal',   group: 'patterns', render: renderNormal },
   { id: 'changed',       icon: 'shift',    group: 'patterns', render: renderChanged },
   { id: 'why',           icon: 'why',      group: 'patterns', render: renderWhy },
   { id: 'patterns',      icon: 'patterns', group: 'patterns', render: renderPatterns,  primary: true },

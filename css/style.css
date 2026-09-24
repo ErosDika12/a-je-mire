@@ -1151,3 +1151,53 @@ pre.json {
   .celebrate { animation: none; }
   .progress-bar span { transition: none; }
 }
+
+/* ---------- MIRA ---------- */
+.mira-id { display: flex; align-items: center; gap: var(--s4); }
+.mira-orb {
+  flex-shrink: 0; width: 52px; height: 52px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff 0 8%, var(--lavender) 40%, var(--accent) 100%);
+  box-shadow: 0 0 0 6px var(--lav-soft), 0 8px 24px rgba(90, 82, 194, 0.28);
+  animation: mira-breathe 6s ease-in-out infinite;
+}
+@keyframes mira-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+.mira-voice { font-size: var(--fs-lg); line-height: 1.55; color: var(--text); }
+.mira-intro { border-left: 3px solid var(--lavender); }
+.mira-actions { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s5); }
+.mira-nav { display: flex; justify-content: space-between; gap: var(--s2); margin-top: var(--s2); }
+.mira-urgent-row { margin-top: var(--s6); text-align: center; }
+.mira-due { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; }
+.mira-progress { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-bottom: var(--s4); }
+.mira-progress span { height: 4px; border-radius: var(--r-full); background: var(--surface-3); transition: background var(--t); }
+.mira-progress span.on { background: linear-gradient(90deg, var(--accent), var(--lavender)); }
+.mira-step-title { font-size: var(--fs-2xl); margin: var(--s2) 0 var(--s4); outline: none; }
+.mira-choices { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.mira-choice {
+  min-height: 52px; padding: var(--s3) var(--s4); text-align: left;
+  border: 1px solid var(--border-strong); border-radius: var(--r); background: var(--surface);
+  color: var(--text); font: inherit; font-size: var(--fs-md); cursor: pointer;
+  transition: border-color var(--t-fast), background var(--t-fast), transform var(--t-fast);
+}
+.mira-choice:hover { border-color: var(--lavender); }
+.mira-choice:active { transform: scale(0.98); }
+.mira-choice[aria-pressed="true"] { border-color: var(--lavender); background: var(--lav-soft); font-weight: 650; }
+.mira-inline { display: flex; gap: var(--s2); }
+.mira-inline input { flex: 1; min-width: 0; }
+.mira-cols { display: grid; gap: var(--s4); grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.mira-col { padding: var(--s4); border-radius: var(--r); background: var(--surface-2); border: 1px solid var(--border); }
+.mira-col-can { border-top: 3px solid var(--accent); }
+.mira-col-cant { border-top: 3px solid var(--border-strong); }
+.mira-items { list-style: none; padding: 0; margin: var(--s3) 0; display: grid; gap: var(--s2); }
+.mira-items li { display: flex; align-items: center; justify-content: space-between; gap: var(--s2);
+  padding: var(--s2) var(--s3); border-radius: var(--r-sm); background: var(--surface); }
+.mira-item-btns { display: flex; flex-shrink: 0; }
+.tag-sm { min-height: 36px; font-size: var(--fs-xs); padding: 0 var(--s3); }
+.mira-plan { display: grid; gap: var(--s4); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.mira-slot textarea { width: 100%; margin-top: var(--s2); min-height: 110px; }
+.mira-hist { list-style: none; padding: 0; margin: var(--s3) 0 0; }
+.mira-hist-row { display: flex; justify-content: space-between; align-items: center; gap: var(--s3);
+  padding: var(--s3) 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.mira-hist-row .card-sub { display: block; }
+.mira-hist-btns { display: flex; gap: var(--s1); }
+.mira-read { padding-left: var(--s5); margin: var(--s2) 0; }
+@media (prefers-reduced-motion: reduce) { .mira-orb { animation: none; } }

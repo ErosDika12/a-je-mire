@@ -8,12 +8,12 @@ export default {
     actions: 'Veprime', loading: 'Po ngarkohet…', loadMore: 'Shfaq më shumë'
   },
   nav: {
-    dashboard: 'Sot', checkin: 'Check-in', challenges: 'Sfidat', normal: 'My Normal', changed: 'Something Changed',
+    dashboard: 'Sot', mira: 'MIRA', checkin: 'Check-in', challenges: 'Sfidat', normal: 'My Normal', changed: 'Something Changed',
     why: 'Why?', patterns: 'Patterns', helps: 'What Helps Me?', assistant: 'Asistenti', connect: 'Lidhjet',
     community: 'Komuniteti', network: 'Rrjeti', mentor: 'Mentori', data: 'Të dhënat e mia', account: 'Llogaria',
     notifications: 'Njoftimet', subscription: 'Plus', privacy: 'Privatësia', admin: 'Administrimi',
     group_you: 'Ti', group_patterns: 'Patternat', group_people: 'Njerëzit', group_privacy: 'Privatësia', group_staff: 'Stafi',
-    short_dashboard: 'Sot', short_normal: 'Normalja', short_patterns: 'Patterns', short_connect: 'Lidhjet',
+    short_dashboard: 'Sot', short_mira: 'MIRA', short_normal: 'Normalja', short_patterns: 'Patterns', short_connect: 'Lidhjet',
     more: 'Më shumë', settings: 'Cilësimet', tour: 'Prezantim i udhëhequr', theme: 'Tema'
   },
   shell: {

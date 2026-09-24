@@ -1,5 +1,6 @@
 import { METRICS, METRIC_RANGES } from './patterns.js';
 import { t } from './i18n/index.js';
+import { cleanPaths } from './mira.js';
 
 // E vetmja derë për të shkruar dhe lexuar në localStorage.
 // Gjithçka rri nën një çelës të vetëm.
@@ -155,6 +156,8 @@ export function migrate(raw) {
   profile.dismissed = Array.isArray(profile.dismissed) ? profile.dismissed : [];
   profile.experiment = profile.experiment || null;
   profile.consentLog = Array.isArray(profile.consentLog) ? profile.consentLog : [];
+  // MIRA: rrugët e ruajtura, të pastruara (edhe nga fajllat e importuar).
+  profile.mira = { paths: cleanPaths(profile.mira && profile.mira.paths) };
   // Gjendja e sinkronizimit: kurrë fjalëkalimi, vetëm ID e pajisjes dhe revizioni i fundit i njohur.
   profile.sync = profile.sync && typeof profile.sync === 'object' ? profile.sync : null;
   return profile;

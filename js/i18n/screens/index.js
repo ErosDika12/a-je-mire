@@ -17,8 +17,9 @@ import acct from './acct.js';
 import privacy from './privacy.js';
 import consent from './consent.js';
 import seed from './seed.js';
+import mira from './mira.js';
 
-const SCREENS = { core, dash, checkin, normal, changed, why, pat, helps, my5, compose, kafe, wall, comp, data, acct, privacy, consent, seed };
+const SCREENS = { core, dash, checkin, normal, changed, why, pat, helps, my5, compose, kafe, wall, comp, data, acct, privacy, consent, seed, mira };
 
 function pick(lang) {
   return Object.fromEntries(Object.entries(SCREENS).map(([name, pair]) => [name, pair[lang]]));
