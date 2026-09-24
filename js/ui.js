@@ -1,5 +1,6 @@
 // Pjesët e përbashkëta të ndërfaqes: ikona, toast, temë, tooltip, dialogje.
 import { escapeHtml } from './format.js';
+import { t } from './i18n/index.js';
 
 // ---------- ikonat ----------
 // Të gjitha 24x24, e njëjta trashësi vije, ngjyra vjen nga teksti përreth (currentColor).
@@ -83,9 +84,9 @@ export function nextTheme(current) {
 }
 
 export function themeLabel(theme) {
-  if (theme === 'light') return 'Temë e çelët';
-  if (theme === 'dark') return 'Temë e errët';
-  return 'Tema sipas sistemit';
+  if (theme === 'light') return t('core.themeLight');
+  if (theme === 'dark') return t('core.themeDark');
+  return t('core.themeAuto');
 }
 
 export function themeIcon(theme) {
@@ -233,7 +234,7 @@ export function openModal(title, bodyHtml) {
   panel.setAttribute('aria-modal', 'true');
   panel.setAttribute('aria-label', title);
   panel.innerHTML = `<div class="modal-head"><h3>${escapeHtml(title)}</h3>
-    <button type="button" class="icon-btn" data-close aria-label="Mbyll">${icon('close')}</button></div>${bodyHtml}`;
+    <button type="button" class="icon-btn" data-close aria-label="${t('common.close')}">${icon('close')}</button></div>${bodyHtml}`;
   panel.querySelector('[data-close]').addEventListener('click', closeLayer);
   return openLayerWith(panel);
 }

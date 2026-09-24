@@ -3,6 +3,7 @@ import { formatDateLong } from '../format.js';
 import { escapeHtml, initials } from '../format.js';
 import { CONNECT_ACTIVITIES, TONES, draftMessage, suggestConnection, daysSince } from '../compose.js';
 import { emptyState as emptyBlock } from '../components.js';
+import { t } from '../i18n/index.js';
 
 // Gjendja e ekranit ruhet ndërmjet rivizatimeve, që teksti i redaktuar të mos humbasë.
 let state = null;
@@ -12,10 +13,9 @@ export function renderKafe(container, app) {
 
   if (people.length === 0) {
     container.innerHTML = `${head()}
-      <section class="card">${emptyBlock('coffee', 'Së pari zgjidh njerëzit e tu',
-        'KAFE? propozon një hap të vogël drejt dikujt nga MY 5. Shto të paktën një person.')}
+      <section class="card">${emptyBlock('coffee', t('kafe.firstPick'), t('kafe.firstPickText'))}
         <div class="row" style="justify-content:center">
-          <button type="button" class="btn btn-primary" data-go="my5">${icon('users', 16)} Hap MY 5</button>
+          <button type="button" class="btn btn-primary" data-go="my5">${icon('users', 16)} ${t('kafe.openMy5')}</button>
         </div>
       </section>`;
     wire(container, app);
@@ -49,7 +49,7 @@ export function renderKafe(container, app) {
       <div class="row" style="gap:var(--s3)">
         <span class="fact-ic">${icon('shield', 18)}</span>
         <p style="flex:1;min-width:220px;color:var(--text-2);font-size:var(--fs-sm)">
-          Ky ekran nuk dërgon asgjë. Maksimumi që bën është të përgatisë një draft dhe ta kopjojë në clipboard. Dërgimin e bën ti, nga aplikacioni yt.
+          ${t('kafe.neverSends')}
         </p>
       </div>
     </section>`;
@@ -60,25 +60,25 @@ export function renderKafe(container, app) {
 
 function head() {
   return `<header class="page-head">
-    <h1 class="page-title">KAFE?</h1>
-    <p class="page-sub">Një hap i vogël social, opsional. Ti vendos nëse, kur dhe si.</p>
+    <h1 class="page-title">${t('kafe.title')}</h1>
+    <p class="page-sub">${t('kafe.subtitle')}</p>
   </header>`;
 }
 
 function suggestionCard(suggestion, app) {
   const gapText = suggestion.gapDays === null
-    ? 'pa datë kontakti të shënuar'
-    : `${suggestion.gapDays} ditë nga kontakti i fundit i shënuar`;
+    ? t('kafe.noDate')
+    : t('kafe.gap', { n: suggestion.gapDays });
   return `<section class="kafe-card">
-    <span class="pill pill-amber">${icon('coffee', 13)} Sugjerim i sotëm</span>
+    <span class="pill pill-amber">${icon('coffee', 13)} ${t('kafe.todaySuggestion')}</span>
     <p class="kafe-line" style="margin-top:var(--s3)">${escapeHtml(suggestion.reason)}</p>
     <p class="kafe-line" style="margin-top:var(--s2)">
-      Një hap i vogël: <strong>${escapeHtml(suggestion.person.name)}</strong> · ${escapeHtml(suggestion.activityText)}.
+      ${t('kafe.smallStep', { name: escapeHtml(suggestion.person.name), what: escapeHtml(suggestion.activityText) })}
     </p>
     <p class="link-meta" style="margin-top:var(--s2)">${escapeHtml(gapText)}</p>
     <div class="kafe-actions">
-      <button type="button" class="btn btn-primary" data-accept>${icon('edit', 16)} Përgatit mesazhin</button>
-      <button type="button" class="btn" data-dismiss="${escapeHtml(suggestion.key)}">Jo tani</button>
+      <button type="button" class="btn btn-primary" data-accept>${icon('edit', 16)} ${t('kafe.prepare')}</button>
+      <button type="button" class="btn" data-dismiss="${escapeHtml(suggestion.key)}">${t('kafe.notNow')}</button>
     </div>
   </section>`;
 }
@@ -88,7 +88,7 @@ function allDismissedCard() {
     <div class="row" style="gap:var(--s3)">
       <span class="fact-ic">${icon('check', 18)}</span>
       <p style="flex:1;min-width:220px;color:var(--text-2);font-size:var(--fs-sm)">
-        Sugjerimet e sotme u mbyllën. Mund të përgatisësh vetë një mesazh më poshtë sa herë të duash.
+        ${t('kafe.allDismissed')}
       </p>
     </div>
   </section>`;
@@ -97,20 +97,20 @@ function allDismissedCard() {
 function composerCard(people, person) {
   return `<section class="card" style="margin-top:var(--s4)">
     <div class="card-head"><div>
-      <h2 class="card-title">Message Composer</h2>
-      <p class="card-sub">Drafti ndërtohet lokalisht nga template. Ti e redakton dhe e dërgon vetë.</p>
+      <h2 class="card-title">${t('kafe.composer')}</h2>
+      <p class="card-sub">${t('kafe.composerHint')}</p>
     </div></div>
 
     <div class="grid grid-2">
       <div class="field">
-        <label for="pick-person">Kujt</label>
+        <label for="pick-person">${t('kafe.to')}</label>
         <select id="pick-person">
           ${people.map((item, index) =>
             `<option value="${index}" ${index === state.personIndex ? 'selected' : ''}>${escapeHtml(item.name)}${item.relation ? ' · ' + escapeHtml(item.relation) : ''}</option>`).join('')}
         </select>
       </div>
       <div class="field">
-        <label for="pick-activity">Për çfarë</label>
+        <label for="pick-activity">${t('kafe.what')}</label>
         <select id="pick-activity">
           ${Object.entries(CONNECT_ACTIVITIES).map(([key, label]) =>
             `<option value="${key}" ${key === state.activityKey ? 'selected' : ''}>${label}</option>`).join('')}
@@ -119,7 +119,7 @@ function composerCard(people, person) {
     </div>
 
     <div class="field" style="margin-top:var(--s4)">
-      <span id="tone-label">Toni</span>
+      <span id="tone-label">${t('kafe.tone')}</span>
       <div class="tone-wrap" role="group" aria-labelledby="tone-label">
         ${Object.entries(TONES).map(([key, label]) =>
           `<button type="button" class="tag" data-tone="${key}" aria-pressed="${key === state.tone}">${label}</button>`).join('')}
@@ -127,17 +127,17 @@ function composerCard(people, person) {
     </div>
 
     <div class="field" style="margin-top:var(--s4)">
-      <label for="draft-text">Drafti <span class="field-hint">redaktoje si të duash</span></label>
+      <label for="draft-text">${t('kafe.draft')} <span class="field-hint">${t('kafe.draftHint')}</span></label>
       <textarea id="draft-text" rows="3" maxlength="400"></textarea>
     </div>
 
     <div class="row" style="margin-top:var(--s4)">
-      <button type="button" class="btn btn-primary" data-copy>${icon('copy', 16)} Kopjo tekstin</button>
-      <button type="button" class="btn" data-regenerate>${icon('refresh', 16)} Variant tjetër</button>
-      <button type="button" class="btn" data-complete>${icon('check', 16)} Shëno si të kryer</button>
+      <button type="button" class="btn btn-primary" data-copy>${icon('copy', 16)} ${t('kafe.copy')}</button>
+      <button type="button" class="btn" data-regenerate>${icon('refresh', 16)} ${t('kafe.variant')}</button>
+      <button type="button" class="btn" data-complete>${icon('check', 16)} ${t('kafe.complete')}</button>
     </div>
 
-    <p class="card-note">"Shëno si të kryer" e ruan vetëm te ti: përditëson datën e kontaktit dhe e shton te Connection Wall. Personi nuk merr asgjë.</p>
+    <p class="card-note">${t('kafe.completeNote')}</p>
   </section>`;
 }
 
@@ -146,13 +146,13 @@ function historyCard(profile, today) {
   if (history.length === 0) return '';
   return `<section class="card" style="margin-top:var(--s4)">
     <div class="card-head"><div>
-      <h2 class="card-title">Lidhjet e shënuara</h2>
-      <p class="card-sub">Vetëm ato që i ke shënuar vetë si të kryera</p>
+      <h2 class="card-title">${t('kafe.history')}</h2>
+      <p class="card-sub">${t('kafe.historyHint')}</p>
     </div></div>
     ${history.map(item => `<div class="moment">
       <span class="moment-date">${escapeHtml(item.date)}</span>
       <span class="moment-body">${escapeHtml(item.personName)} · ${escapeHtml(CONNECT_ACTIVITIES[item.activityKey] || item.activityKey)}
-        <span class="link-meta"> (${daysSince(item.date, today)} ditë më parë)</span></span>
+        <span class="link-meta"> ${t('kafe.daysAgo', { n: daysSince(item.date, today) })}</span></span>
     </div>`).join('')}
   </section>`;
 }
@@ -180,7 +180,7 @@ function wire(container, app) {
       app.profile.dismissed = app.profile.dismissed || [];
       app.profile.dismissed.push({ date: app.today, key: dismiss.dataset.dismiss });
       app.save();
-      toast('Nuk do të rishfaqet sot');
+      toast(t('kafe.notToday'));
       renderKafe(container, app);
     });
   }
@@ -222,7 +222,7 @@ function wire(container, app) {
     regenerate.addEventListener('click', () => {
       state.variant += 1;
       refreshDraft(container, app);
-      toast('Variant i ri i gjeneruar');
+      toast(t('kafe.newVariant'));
     });
   }
 
@@ -230,11 +230,11 @@ function wire(container, app) {
   if (copyButton) {
     copyButton.addEventListener('click', async () => {
       const done = await copyText(textarea.value);
-      toast(done ? 'Teksti u kopjua. Dërgoje ti kur të duash.' : 'Kopjimi nuk u lejua nga shfletuesi', done ? 'ok' : 'err');
+      toast(done ? t('kafe.copied') : t('kafe.copyBlocked'), done ? 'ok' : 'err');
       if (done) {
         // Konfirmim i dukshëm mbi vetë butonin, jo vetëm një toast që zhduket.
-        copyButton.innerHTML = `${icon('check', 16)} U kopjua`;
-        setTimeout(() => { if (copyButton.isConnected) copyButton.innerHTML = `${icon('copy', 16)} Kopjo tekstin`; }, 2500);
+        copyButton.innerHTML = `${icon('check', 16)} ${t('kafe.copiedButton')}`;
+        setTimeout(() => { if (copyButton.isConnected) copyButton.innerHTML = `${icon('copy', 16)} ${t('kafe.copy')}`; }, 2500);
       }
     });
   }
@@ -247,7 +247,7 @@ function wire(container, app) {
       app.profile.connections = app.profile.connections || [];
       app.profile.connections.push({ date: app.today, personName: person.name, activityKey: state.activityKey });
       app.save();
-      toast(`Lidhja me ${person.name} u shënua`, 'ok');
+      toast(t('kafe.marked', { name: person.name }), 'ok');
       renderKafe(container, app);
     });
   }

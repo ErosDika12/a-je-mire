@@ -2,7 +2,9 @@ import { icon, toast, openModal, closeLayer } from '../ui.js';
 import { escapeHtml, formatDateLong } from '../format.js';
 import { exportToFile, importFromText, saveLocalBackup, loadLocalBackup } from '../storage.js';
 import { findConflicts, mergeProfiles } from '../merge.js';
+import { recordActivity } from '../challenges.js';
 import { allTags } from '../patterns.js';
+import { t } from '../i18n/index.js';
 
 export function renderData(container, app) {
   const profile = app.profile;
@@ -11,78 +13,78 @@ export function renderData(container, app) {
 
   container.innerHTML = `
     <header class="page-head">
-      <h1 class="page-title">Të dhënat e mia</h1>
-      <p class="page-sub">Gjithçka që ruan ky aplikacion, në një vend. Nën kontrollin tënd.</p>
+      <h1 class="page-title">${t('data.title')}</h1>
+      <p class="page-sub">${t('data.subtitle')}</p>
     </header>
 
     <section class="card">
       <div class="card-head"><div>
-        <h2 class="card-title">Përmbledhje</h2>
-        <p class="card-sub">E lexueshme nga njeriu, jo kod</p>
+        <h2 class="card-title">${t('data.summary')}</h2>
+        <p class="card-sub">${t('data.summaryHint')}</p>
       </div>
       <span class="pill ${profile.mode === 'demo' ? 'pill-lav' : 'pill-accent'}">
         ${icon(profile.mode === 'demo' ? 'spark' : 'shield', 13)}
-        ${profile.mode === 'demo' ? 'Profil sintetik demo' : 'Profil privat'}
+        ${profile.mode === 'demo' ? t('data.demo') : t('data.private')}
       </span></div>
       <dl>
-        ${row('Check-ins të ruajtura', `${checkins.length}`)}
-        ${row('Periudha', checkins.length ? `${formatDateLong(checkins[0].date)} — ${formatDateLong(checkins[checkins.length - 1].date)}` : '—')}
-        ${row('Ditë me shënim', `${withNotes}`)}
-        ${row('Tags të ndryshme', `${allTags(checkins).length}`)}
-        ${row('Persona në MY 5', `${(profile.my5 || []).length}`)}
-        ${row('Lidhje të shënuara', `${(profile.connections || []).length}`)}
-        ${row('Ruajtja lokale', profile.consent.store ? 'e pranuar' : 'e ndaluar')}
-        ${row('Ndihma për tekstin', profile.consent.ai ? 'e pranuar' : 'e ndaluar')}
-        ${row('Pranuar më', profile.consent.acceptedAt ? formatDateLong(profile.consent.acceptedAt.slice(0, 10)) : '—')}
-        ${row('Çelësi në localStorage', 'ajemire.v1')}
+        ${row(t('data.rCheckins'), `${checkins.length}`)}
+        ${row(t('data.rPeriod'), checkins.length ? `${formatDateLong(checkins[0].date)} — ${formatDateLong(checkins[checkins.length - 1].date)}` : '—')}
+        ${row(t('data.rNotes'), `${withNotes}`)}
+        ${row(t('data.rTags'), `${allTags(checkins).length}`)}
+        ${row(t('data.rMy5'), `${(profile.my5 || []).length}`)}
+        ${row(t('data.rConnections'), `${(profile.connections || []).length}`)}
+        ${row(t('data.rStore'), profile.consent.store ? t('data.granted') : t('data.denied'))}
+        ${row(t('data.rTextHelp'), profile.consent.ai ? t('data.granted') : t('data.denied'))}
+        ${row(t('data.rAccepted'), profile.consent.acceptedAt ? formatDateLong(profile.consent.acceptedAt.slice(0, 10)) : '—')}
+        ${row(t('data.rKey'), 'ajemire.v1')}
       </dl>
       ${consentLogBlock(profile)}
     </section>
 
     <section class="card" style="margin-top:var(--s4)">
       <div class="card-head"><div>
-        <h2 class="card-title">Eksport dhe import</h2>
-        <p class="card-sub">Fajll JSON, drejt e në pajisjen tënde</p>
+        <h2 class="card-title">${t('data.exportTitle')}</h2>
+        <p class="card-sub">${t('data.exportHint')}</p>
       </div></div>
       <div class="row">
-        <button type="button" class="btn" data-export>${icon('download', 16)} Eksporto si fajll</button>
-        <button type="button" class="btn" data-import>${icon('upload', 16)} Importo nga fajll</button>
+        <button type="button" class="btn" data-export>${icon('download', 16)} ${t('data.export')}</button>
+        <button type="button" class="btn" data-import>${icon('upload', 16)} ${t('data.import')}</button>
         <input type="file" id="import-file" accept="application/json,.json" class="sr-only"
-               aria-label="Zgjidh një fajll JSON për import" tabindex="-1">
+               aria-label="${t('data.pickFile')}" tabindex="-1">
       </div>
       <div id="import-report" style="margin-top:var(--s4)"></div>
-      <p class="card-note">Importi kontrollohet para se të pranohet: datat, kufijtë e vlerave dhe rreshtat e dyfishtë. Rreshtat e gabuar nuk bëhen zero — thjesht nuk merren, dhe raportohen.</p>
+      <p class="card-note">${t('data.importNote')}</p>
     </section>
 
     ${backupCard()}
 
     <section class="card" style="margin-top:var(--s4)">
       <div class="card-head"><div>
-        <h2 class="card-title">Profili</h2>
-        <p class="card-sub">Ndërro mes demos sintetike dhe një profili privat bosh</p>
+        <h2 class="card-title">${t('data.profile')}</h2>
+        <p class="card-sub">${t('data.profileHint')}</p>
       </div></div>
       <div class="row">
-        <button type="button" class="btn" data-reset-demo>${icon('refresh', 16)} Rinis demon sintetike</button>
-        <button type="button" class="btn" data-fresh>${icon('shield', 16)} Nis profil privat bosh</button>
+        <button type="button" class="btn" data-reset-demo>${icon('refresh', 16)} ${t('data.resetDemo')}</button>
+        <button type="button" class="btn" data-fresh>${icon('shield', 16)} ${t('data.fresh')}</button>
       </div>
-      <p class="card-note">Të dyja i zëvendësojnë të dhënat aktuale në këtë pajisje. Eksporto më parë nëse do t'i mbash.</p>
+      <p class="card-note">${t('data.profileNote')}</p>
     </section>
 
     <section class="card" style="margin-top:var(--s4)">
       <details class="collapse">
-        <summary>${icon('database', 16)} Të dhënat e papërpunuara (JSON)</summary>
+        <summary>${icon('database', 16)} ${t('data.raw')}</summary>
         <div class="collapse-body">
-          <pre class="json" id="data-json"></pre>
+          <pre class="json" id="data-json" tabindex="0" aria-label="JSON"></pre>
         </div>
       </details>
     </section>
 
     <section class="card" style="margin-top:var(--s4);border-color:color-mix(in srgb, var(--signal) 35%, var(--border))">
       <div class="card-head"><div>
-        <h2 class="card-title">Fshij gjithçka</h2>
-        <p class="card-sub">Pastron localStorage dhe të kthen te ekrani i consent-it</p>
+        <h2 class="card-title">${t('data.deleteTitle')}</h2>
+        <p class="card-sub">${t('data.deleteHint')}</p>
       </div></div>
-      <button type="button" class="btn btn-danger" data-delete>${icon('trash', 16)} Fshij gjithçka</button>
+      <button type="button" class="btn btn-danger" data-delete>${icon('trash', 16)} ${t('data.deleteTitle')}</button>
     </section>`;
 
   // textContent, jo innerHTML: JSON-i përmban tekst të shkruar nga përdoruesi.
@@ -90,19 +92,16 @@ export function renderData(container, app) {
   wire(container, app);
 }
 
-const CONSENT_NAMES = {
-  local_storage: 'Ruajtja lokale', text_help: 'Ndihma për tekstin', terms: 'Kushtet',
-  privacy: 'Privatësia', cloud_backup: 'Kopja në cloud'
-};
+const CONSENT_KINDS = ['local_storage', 'text_help', 'terms', 'privacy', 'cloud_backup', 'analytics', 'ai_assistant'];
 
 function consentLogBlock(profile) {
   const log = profile.consentLog || [];
   if (log.length === 0) return '';
   return `<details class="collapse mt-4">
-    <summary>${icon('doc', 16)} Historiku i pëlqimeve (${log.length})</summary>
+    <summary>${icon('doc', 16)} ${t('data.consentLog', { n: log.length })}</summary>
     <div class="collapse-body"><dl>
-      ${log.slice().reverse().map(item => row(`${CONSENT_NAMES[item.kind] || item.kind} · v${item.policyVersion}`,
-        `${item.granted ? 'pranuar' : 'refuzuar/tërhequr'} · ${formatDateLong(item.at.slice(0, 10))}`)).join('')}
+      ${log.slice().reverse().map(item => row(`${CONSENT_KINDS.includes(item.kind) ? t(`data.consent.${item.kind}`) : item.kind} · v${item.policyVersion}`,
+        `${item.granted ? t('data.logGranted') : t('data.logRevoked')} · ${formatDateLong(item.at.slice(0, 10))}`)).join('')}
     </dl></div>
   </details>`;
 }
@@ -112,11 +111,11 @@ function backupCard() {
   if (!backup || !backup.profile) return '';
   return `<section class="card mt-4">
     <div class="card-head"><div>
-      <h2 class="card-title">Kopja lokale para zëvendësimit të fundit</h2>
-      <p class="card-sub">${backup.profile.checkins.length} ditë · ruajtur ${escapeHtml(formatDateLong(backup.savedAt.slice(0, 10)))}</p>
+      <h2 class="card-title">${t('data.backupTitle')}</h2>
+      <p class="card-sub">${t('data.backupMeta', { n: backup.profile.checkins.length, date: escapeHtml(formatDateLong(backup.savedAt.slice(0, 10))) })}</p>
     </div></div>
-    <button type="button" class="btn" data-restore-local>${icon('refresh', 16)} Rikthe këtë kopje</button>
-    <p class="card-note">Krijohet automatikisht sa herë që një import ose rikthim nga cloud zëvendëson të dhënat e tua. Rri vetëm në këtë pajisje.</p>
+    <button type="button" class="btn" data-restore-local>${icon('refresh', 16)} ${t('data.backupRestore')}</button>
+    <p class="card-note">${t('data.backupNote')}</p>
   </section>`;
 }
 
@@ -128,7 +127,7 @@ function confirmDialog(title, body, confirmLabel, onConfirm) {
   const panel = openModal(title, `
     <p style="color:var(--text-2);font-size:var(--fs-sm)">${body}</p>
     <div class="row" style="justify-content:flex-end;margin-top:var(--s5)">
-      <button type="button" class="btn" data-cancel>Anulo</button>
+      <button type="button" class="btn" data-cancel>${t('data.cancel')}</button>
       <button type="button" class="btn btn-danger" data-confirm>${confirmLabel}</button>
     </div>`);
   panel.querySelector('[data-cancel]').addEventListener('click', closeLayer);
@@ -138,7 +137,9 @@ function confirmDialog(title, body, confirmLabel, onConfirm) {
 function wire(container, app) {
   container.querySelector('[data-export]').addEventListener('click', () => {
     const started = exportToFile(app.profile);
-    toast(started ? 'Fajlli u shkarkua' : 'Shfletuesi nuk e lejoi shkarkimin', started ? 'ok' : 'err');
+    // Eksporti regjistrohet si fakt (për sfidën "Eksporto një kopje"), pa asnjë përmbajtje.
+    if (started) { recordActivity(app.profile, 'exports', app.today); app.save(); }
+    toast(started ? t('data.exported') : t('data.exportBlocked'), started ? 'ok' : 'err');
   });
 
   const fileInput = container.querySelector('#import-file');
@@ -147,7 +148,7 @@ function wire(container, app) {
     const file = fileInput.files && fileInput.files[0];
     if (!file) return;
     const report = container.querySelector('#import-report');
-    report.innerHTML = `<p class="status">${icon('refresh', 14)} Po lexohet ${escapeHtml(file.name)}…</p>`;
+    report.innerHTML = `<p class="status">${icon('refresh', 14)} ${escapeHtml(t('data.reading', { name: file.name }))}</p>`;
     const reader = new FileReader();
     reader.onload = () => {
       const result = importFromText(String(reader.result));
@@ -155,32 +156,29 @@ function wire(container, app) {
       fileInput.value = '';
     };
     reader.onerror = () => {
-      report.innerHTML = `<p class="warn">${icon('info', 14)} Fajlli nuk u lexua dot.</p>`;
+      report.innerHTML = `<p class="warn">${icon('info', 14)} ${t('data.readFailed')}</p>`;
       fileInput.value = '';
     };
     reader.readAsText(file);
   });
 
   container.querySelector('[data-reset-demo]').addEventListener('click', () => {
-    confirmDialog('Rinis demon sintetike',
-      'Të dhënat aktuale në këtë pajisje do të zëvendësohen me profilin sintetik 30-ditor.',
-      `${icon('refresh', 15)} Rinis demon`,
-      () => { app.resetToDemo(); toast('Demoja sintetike u rindërtua', 'ok'); });
+    confirmDialog(t('data.resetTitle'), t('data.resetText'),
+      `${icon('refresh', 15)} ${t('data.resetButton')}`,
+      () => { app.resetToDemo(); toast(t('data.resetDone'), 'ok'); });
   });
 
   container.querySelector('[data-fresh]').addEventListener('click', () => {
-    confirmDialog('Nis profil privat bosh',
-      'Të dhënat aktuale do të zëvendësohen me një profil bosh. Baseline-i do të nisë nga zero.',
-      `${icon('shield', 15)} Nis bosh`,
-      () => { app.resetToPrivate(); toast('Profili privat u nis', 'ok'); });
+    confirmDialog(t('data.freshTitle'), t('data.freshText'),
+      `${icon('shield', 15)} ${t('data.freshButton')}`,
+      () => { app.resetToPrivate(); toast(t('data.freshDone'), 'ok'); });
   });
 
   const restore = container.querySelector('[data-restore-local]');
   if (restore) {
     restore.addEventListener('click', () => {
-      confirmDialog('Rikthe kopjen lokale',
-        'Të dhënat aktuale zëvendësohen me kopjen e ruajtur. Të dhënat aktuale bëhen kopja e re, që të mund të kthehesh sërish.',
-        `${icon('refresh', 15)} Rikthe`,
+      confirmDialog(t('data.restoreTitle'), t('data.restoreText'),
+        `${icon('refresh', 15)} ${t('data.restoreButton')}`,
         () => {
           const backup = loadLocalBackup();
           const current = app.profile;
@@ -188,16 +186,15 @@ function wire(container, app) {
           backup.profile.sync = current.sync;
           saveLocalBackup(current);
           app.replaceProfile(backup.profile);
-          toast('Kopja lokale u rikthye', 'ok');
+          toast(t('data.restored'), 'ok');
           renderData(container, app);
         });
     });
   }
 
   container.querySelector('[data-delete]').addEventListener('click', () => {
-    confirmDialog('Fshij gjithçka',
-      'Kjo heq të gjitha check-ins, MY 5 dhe lidhjet nga kjo pajisje. Nuk kthehen. Do të kthehesh te ekrani i consent-it.',
-      `${icon('trash', 15)} Fshij përfundimisht`,
+    confirmDialog(t('data.deleteTitle'), t('data.deleteText'),
+      `${icon('trash', 15)} ${t('data.deleteButton')}`,
       () => { app.deleteEverything(); });
   });
 }
@@ -205,32 +202,31 @@ function wire(container, app) {
 function showImportResult(report, result, app, container) {
   if (!result.ok) {
     report.innerHTML = `<div class="card card-soft">
-      <p class="warn">${icon('info', 14)} Importi nuk u pranua.</p>
+      <p class="warn">${icon('info', 14)} ${t('data.importRejected')}</p>
       <ul class="facts" style="margin-top:var(--s3)">
         ${result.errors.map(text => `<li class="fact fact-no"><span class="fact-ic">${icon('close', 14)}</span><span>${escapeHtml(text)}</span></li>`).join('')}
       </ul>
     </div>`;
-    toast('Fajlli nuk kaloi kontrollin', 'err');
+    toast(t('data.importFailed'), 'err');
     return;
   }
 
   const count = result.profile.checkins.length;
   const conflicts = findConflicts(app.profile, result.profile);
   report.innerHTML = `<div class="card card-soft">
-    <p style="font-size:var(--fs-sm)"><strong>${count}</strong> check-ins të vlefshme u gjetën
-      ${result.warnings.length ? `, me ${result.warnings.length} vërejtje` : ''}.</p>
+    <p style="font-size:var(--fs-sm)">${t('data.found', { n: count, warnings: result.warnings.length ? t('data.withWarnings', { n: result.warnings.length }) : '' })}</p>
     ${result.warnings.length ? `<details class="collapse" style="margin-top:var(--s3)">
-      <summary>Shiko vërejtjet</summary>
+      <summary>${t('data.seeWarnings')}</summary>
       <div class="collapse-body"><ul class="facts">
         ${result.warnings.slice(0, 20).map(text => `<li class="fact fact-no"><span class="fact-ic">${icon('info', 14)}</span><span>${escapeHtml(text)}</span></li>`).join('')}
       </ul></div></details>` : ''}
-    ${conflicts.length ? `<p class="warn mt-3">${icon('info', 14)} ${conflicts.length} ${conflicts.length === 1 ? 'datë ekziston' : 'data ekzistojnë'} me vlera të ndryshme. "Bashko" i mban versionet e tua për këto data; "Zëvendëso" merr ato të fajllit.</p>` : ''}
+    ${conflicts.length ? `<p class="warn mt-3">${icon('info', 14)} ${conflicts.length === 1 ? t('data.conflictsOne') : t('data.conflictsMany', { n: conflicts.length })}</p>` : ''}
     <div class="row" style="margin-top:var(--s4)">
-      <button type="button" class="btn btn-primary" data-merge-import>${icon('plus', 15)} Bashko me të miat</button>
-      <button type="button" class="btn" data-confirm-import>${icon('refresh', 15)} Zëvendëso të dhënat e mia</button>
-      <button type="button" class="btn" data-cancel-import>Anulo</button>
+      <button type="button" class="btn btn-primary" data-merge-import>${icon('plus', 15)} ${t('data.merge')}</button>
+      <button type="button" class="btn" data-confirm-import>${icon('refresh', 15)} ${t('data.replace')}</button>
+      <button type="button" class="btn" data-cancel-import>${t('data.cancel')}</button>
     </div>
-    <p class="card-note">"Bashko" shton vetëm ditët, personat dhe lidhjet që mungojnë — nuk mbishkruan asgjë. Para "Zëvendëso" ruhet automatikisht një kopje lokale që mund ta rikthesh.</p>
+    <p class="card-note">${t('data.mergeNote')}</p>
   </div>`;
 
   report.querySelector('[data-cancel-import]').addEventListener('click', () => { report.innerHTML = ''; });
@@ -238,7 +234,7 @@ function showImportResult(report, result, app, container) {
     const { profile, summary } = mergeProfiles(app.profile, result.profile);
     profile.consent = { ...app.profile.consent };
     app.replaceProfile(profile);
-    toast(`${summary.added} ditë u shtuan${summary.keptLocal ? `, ${summary.keptLocal} u mbajtën si i ke` : ''}`, 'ok');
+    toast(t('data.merged', { n: summary.added, kept: summary.keptLocal ? t('data.keptLocal', { n: summary.keptLocal }) : '' }), 'ok');
     renderData(container, app);
   });
   report.querySelector('[data-confirm-import]').addEventListener('click', () => {
@@ -247,7 +243,7 @@ function showImportResult(report, result, app, container) {
     result.profile.consentLog = app.profile.consentLog;
     result.profile.sync = app.profile.sync;
     app.replaceProfile(result.profile);
-    toast(`${count} check-ins u importuan · kopja e mëparshme u ruajt`, 'ok');
+    toast(t('data.imported', { n: count }), 'ok');
     renderData(container, app);
   });
 }

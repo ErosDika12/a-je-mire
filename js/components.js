@@ -7,6 +7,7 @@ import {
   formatDateLong, dayOfMonth, weekdayShort
 } from './format.js';
 import { METRICS, METRIC_LABELS, tagLabel } from './patterns.js';
+import { t } from './i18n/index.js';
 
 /* ---------- gjendjet bosh ---------- */
 
@@ -65,35 +66,34 @@ export function weeklySnapshot(report, compact = false) {
 }
 
 function snapshotRow(factor, compact) {
-  const unit = factor.metric === 'sleep' ? ' orë' : '';
+  const unit = factor.metric === 'sleep' ? ` ${t('core.hoursShort')}` : '';
   const label = METRIC_LABELS[factor.metric];
-  const spoken = `${label}: ${fmtNum(factor.base)}${unit} deri ${fmtNum(factor.recent)}${unit}, ndryshim ${fmtPct(factor.pct)}`;
+  const spoken = t('comp.snapSpoken', { label, base: fmtNum(factor.base), recent: fmtNum(factor.recent), unit, pct: fmtPct(factor.pct) });
   return `<div class="snap-row ${factor.flagged ? 'is-flagged' : ''}" role="listitem" aria-label="${escapeHtml(spoken)}">
     ${metricIcon(factor.metric, factor.flagged ? 'signal' : '')}
-    <span class="snap-name">${label}${factor.flagged && !compact ? ' <span class="pill pill-signal">kaloi pragun</span>' : ''}</span>
-    <span class="snap-flow">${fmtNum(factor.base)}${unit} → ${fmtNum(factor.recent)}${unit}${compact ? '' : ` · dallimi ${fmtSigned(factor.delta)}`}</span>
-    <span class="snap-delta" aria-hidden="true"><strong>${arrowFor(factor.pct)} ${fmtPct(factor.pct)}</strong>${compact ? '' : '<span>ndryshim</span>'}</span>
+    <span class="snap-name">${label}${factor.flagged && !compact ? ` <span class="pill pill-signal">${t('comp.crossed')}</span>` : ''}</span>
+    <span class="snap-flow">${fmtNum(factor.base)}${unit} → ${fmtNum(factor.recent)}${unit}${compact ? '' : ` · ${t('comp.diff', { d: fmtSigned(factor.delta) })}`}</span>
+    <span class="snap-delta" aria-hidden="true"><strong>${arrowFor(factor.pct)} ${fmtPct(factor.pct)}</strong>${compact ? '' : `<span>${t('comp.change')}</span>`}</span>
   </div>`;
 }
 
 export function snapshotFooter(recentDays) {
-  return `<p class="card-note">Bazuar në ${recentDays} ditët e fundit, krahasuar me normalen tënde.
-    Për pesë matje shënohet rënia; për ngarkesën shënohet rritja — ky është i vetmi dallim, dhe është i njëjtë kudo në aplikacion.</p>`;
+  return `<p class="card-note">${t('comp.snapFooter', { n: recentDays })}</p>`;
 }
 
 /* ---------- udhëtimi 30-ditor ---------- */
 
 export function journeyBar(journey) {
-  const labels = { done: 'regjistruar', missing: 'pa check-in', pending: 'sot, ende pa check-in', future: 'ende përpara' };
+  const labels = { done: t('comp.jDone'), missing: t('comp.jMissing'), pending: t('comp.jPending'), future: t('comp.jFuture') };
   const segments = journey.days.map(day =>
     `<i class="journey-seg is-${day.state === 'pending' ? 'future' : day.state}${day.isToday ? ' is-today' : ''}"
         title="${escapeHtml(`${formatDateLong(day.date)} · ${labels[day.state]}`)}"></i>`).join('');
-  const summary = `${journey.done} ditë të regjistruara, ${journey.missing} pa check-in, ${journey.remaining} ende përpara, nga 30`;
+  const summary = t('comp.jSummary', { done: journey.done, missing: journey.missing, remaining: journey.remaining });
   return `<div class="journey" role="img" aria-label="${escapeHtml(summary)}">${segments}</div>
     <div class="legend" aria-hidden="true">
-      <span><i class="l-done"></i>regjistruar (${journey.done})</span>
-      <span><i class="l-missing"></i>pa check-in (${journey.missing})</span>
-      <span><i class="l-future"></i>ende përpara (${journey.remaining})</span>
+      <span><i class="l-done"></i>${t('comp.jDone')} (${journey.done})</span>
+      <span><i class="l-missing"></i>${t('comp.jMissing')} (${journey.missing})</span>
+      <span><i class="l-future"></i>${t('comp.jFuture')} (${journey.remaining})</span>
     </div>`;
 }
 
@@ -102,7 +102,7 @@ export function journeyBar(journey) {
 export function dayTimeline(days, selectedDate) {
   const focusDate = selectedDate || days[days.length - 1].date;
   const cells = days.map(day => dayCell(day, day.date === selectedDate, day.date === focusDate)).join('');
-  return `<div class="timeline" role="group" aria-label="30 ditët e fundit. Përdor shigjetat për të lëvizur, Enter për të hapur një ditë.">${cells}</div>`;
+  return `<div class="timeline" role="group" aria-label="${t('comp.timeline')}">${cells}</div>`;
 }
 
 function dayCell(day, isSelected, isFocusable) {
@@ -112,10 +112,10 @@ function dayCell(day, isSelected, isFocusable) {
   else if (day.period === 'baseline') classes.push('is-base');
   if (day.isToday) classes.push('is-today');
 
-  const parts = [formatDateLong(day.date), day.entry ? 'check-in i regjistruar' : 'pa check-in'];
-  if (day.period === 'baseline') parts.push('pjesë e baseline-it');
-  if (day.period === 'recent') parts.push('pjesë e 7 ditëve të fundit');
-  if (day.isToday) parts.push('sot');
+  const parts = [formatDateLong(day.date), day.entry ? t('comp.dayRecorded') : t('comp.dayMissing')];
+  if (day.period === 'baseline') parts.push(t('comp.dayBaseline'));
+  if (day.period === 'recent') parts.push(t('comp.dayRecent'));
+  if (day.isToday) parts.push(t('comp.dayToday'));
 
   return `<button type="button" class="${classes.join(' ')}" data-date="${day.date}"
     aria-pressed="${isSelected}" tabindex="${isFocusable ? '0' : '-1'}" aria-label="${escapeHtml(parts.join(', '))}">
@@ -127,21 +127,21 @@ function dayCell(day, isSelected, isFocusable) {
 export function dayDetail(day) {
   if (!day) return '';
   if (!day.entry) {
-    return `<div class="day-detail" role="region" aria-live="polite" aria-label="Detajet e ditës">
+    return `<div class="day-detail" role="region" aria-live="polite" aria-label="${t('comp.dayDetails')}">
       <span class="eyebrow">${escapeHtml(formatDateLong(day.date))}</span>
-      <p class="muted small mt-2">Nuk ka check-in për këtë ditë. Dita nuk numërohet në asnjë mesatare.</p>
+      <p class="muted small mt-2">${t('comp.dayNone')}</p>
     </div>`;
   }
   const entry = day.entry;
   const metrics = METRICS.map(metric => `<div class="day-metric">${metricIcon(metric)}<span>${METRIC_LABELS[metric]}</span>
-    <b>${fmtValue(entry[metric])}${metric === 'sleep' && Number.isFinite(entry[metric]) ? ' orë' : ''}</b></div>`).join('');
+    <b>${fmtValue(entry[metric])}${metric === 'sleep' && Number.isFinite(entry[metric]) ? ` ${t('core.hoursShort')}` : ''}</b></div>`).join('');
   const tags = (entry.activities || []).length
     ? entry.activities.map(tag => `<span class="pill">${escapeHtml(tagLabel(tag))}</span>`).join(' ')
-    : '<span class="tiny">Pa aktivitete të shënuara</span>';
-  return `<div class="day-detail" role="region" aria-live="polite" aria-label="Detajet e ditës">
+    : `<span class="tiny">${t('comp.noActivities')}</span>`;
+  return `<div class="day-detail" role="region" aria-live="polite" aria-label="${t('comp.dayDetails')}">
     <div class="row-between">
       <span class="eyebrow">${escapeHtml(formatDateLong(day.date))}</span>
-      <span class="pill ${day.period === 'recent' ? 'pill-signal' : day.period === 'baseline' ? 'pill-accent' : ''}">${day.period === 'recent' ? '7 ditët e fundit' : day.period === 'baseline' ? 'baseline' : 'jashtë periudhave'}</span>
+      <span class="pill ${day.period === 'recent' ? 'pill-signal' : day.period === 'baseline' ? 'pill-accent' : ''}">${day.period === 'recent' ? t('comp.last7') : day.period === 'baseline' ? t('comp.baseline') : t('comp.outside')}</span>
     </div>
     <div class="day-metrics">${metrics}</div>
     <div class="tag-wrap mt-3">${tags}</div>
@@ -180,6 +180,6 @@ export function wireTimeline(root, onSelect) {
 
 export function modePill(profile) {
   return profile.mode === 'demo'
-    ? `<span class="pill pill-lav">${icon('spark', 13)} Profil sintetik</span>`
-    : `<span class="pill pill-accent">${icon('shield', 13)} Profil privat</span>`;
+    ? `<span class="pill pill-lav">${icon('spark', 13)} ${t('comp.synthetic')}</span>`
+    : `<span class="pill pill-accent">${icon('shield', 13)} ${t('comp.private')}</span>`;
 }

@@ -7,6 +7,7 @@ import {
   baselineProgress, normalReport, metricValues, splitPeriods, baselineStats, timelineDays
 } from '../patterns.js';
 import { emptyState, sectionHead, dayTimeline, dayDetail, wireTimeline } from '../components.js';
+import { t } from '../i18n/index.js';
 
 let chosenMetric = 'mood';
 let selectedDate = null;
@@ -18,9 +19,8 @@ export function renderNormal(container, app) {
 
   if (profile.checkins.length < 3) {
     container.innerHTML = `${head(profile)}<section class="card">${emptyState('calendar',
-      'Ende nuk ka të dhëna të mjaftueshme',
-      'My Normal ndërtohet vetëm nga check-ins e tua. Numrat e parë shfaqen pas 3 ditësh.',
-      { label: 'Bëj check-in e sotëm', go: 'checkin' })}</section>`;
+      t('normal.notEnough'), t('normal.needThree'),
+      { label: t('normal.doCheckin'), go: 'checkin' })}</section>`;
     return;
   }
 
@@ -31,16 +31,16 @@ export function renderNormal(container, app) {
     ${head(profile)}
     ${progress.full ? '' : progressCard(progress)}
     <section class="card" aria-labelledby="six-title">
-      ${sectionHead('Gjashtë numrat', 'Normalja jote dhe 7 ditët e fundit', `Baseline nga ${baseline.length} ditë`, '', 'six-title')}
+      ${sectionHead(t('normal.sixEyebrow'), t('normal.sixTitle'), t('normal.sixMeta', { n: baseline.length }), '', 'six-title')}
       ${baseline.length === 0
-        ? emptyState('baseline', 'Baseline-i ende nuk ekziston', 'Baseline-i formohet nga ditët para 7 ditëve të fundit. Shfaqet pasi të kesh më shumë se 7 check-ins.')
+        ? emptyState('baseline', t('normal.noBaseline'), t('normal.noBaselineText'))
         : `<div class="stat-grid">${normalReport(profile.checkins, profile.settings).map(factor => statBox(factor, profile)).join('')}</div>`}
     </section>
 
     <section class="card mt-4" aria-labelledby="chart-title">
-      <span class="eyebrow">Linja kohore e një matjeje</span>
-      <h2 class="card-title" id="chart-title">${METRIC_LABELS[chosenMetric]} gjatë ${profile.checkins.length} ditëve</h2>
-      <div class="seg-control mt-4" id="metric-picker" role="group" aria-label="Zgjidh matjen që shfaqet">
+      <span class="eyebrow">${t('normal.chartEyebrow')}</span>
+      <h2 class="card-title" id="chart-title">${t('normal.chartTitle', { label: METRIC_LABELS[chosenMetric], n: profile.checkins.length })}</h2>
+      <div class="seg-control mt-4" id="metric-picker" role="group" aria-label="${t('normal.pickMetric')}">
         ${METRICS.map(metric => `<button type="button" aria-pressed="${metric === chosenMetric}" data-metric="${metric}">${icon(metric, 16)}<span>${METRIC_LABELS[metric]}</span></button>`).join('')}
       </div>
       <div id="chart-host" class="mt-4"></div>
@@ -49,16 +49,15 @@ export function renderNormal(container, app) {
     </section>
 
     <section class="card mt-4" aria-labelledby="timeline-title">
-      ${sectionHead('30 ditët e fundit', 'Një ditë, një katror', 'Zgjidh një ditë për të parë matjet, aktivitetet dhe shënimin e saj.', '', 'timeline-title')}
+      ${sectionHead(t('normal.timelineEyebrow'), t('normal.timelineTitle'), t('normal.timelineHint'), '', 'timeline-title')}
       ${dayLegend()}
       <div id="timeline-host" class="mt-3"></div>
     </section>
 
     <section class="panel mt-4" aria-labelledby="meaning-title">
-      <span class="eyebrow">Si funksionon?</span>
-      <h2 class="card-title" id="meaning-title">Çfarë do të thotë "normale" këtu</h2>
-      <p class="muted small mt-2">My Normal është mesatarja jote e ${profile.settings.baselineDays} ditëve para periudhës së fundit.
-        Nuk është përkufizim mjekësor, nuk është mesatare e njerëzve të tjerë dhe nuk është objektiv. Është vetëm një pikë krahasimi që e prodhojnë të dhënat e tua.</p>
+      <span class="eyebrow">${t('normal.howEyebrow')}</span>
+      <h2 class="card-title" id="meaning-title">${t('normal.howTitle')}</h2>
+      <p class="muted small mt-2">${t('normal.howText', { n: profile.settings.baselineDays })}</p>
     </section>`;
 
   drawChart(container, app);
@@ -78,53 +77,53 @@ export function renderNormal(container, app) {
 
 function head(profile) {
   return `<header class="page-head">
-    <span class="eyebrow">Normalja</span>
-    <h1 class="page-title mt-2">My Normal</h1>
-    <p class="page-sub">Patterni yt i zakonshëm, i llogaritur nga ${profile.checkins.length} ditët e tua.</p>
+    <span class="eyebrow">${t('normal.eyebrow')}</span>
+    <h1 class="page-title mt-2">${t('normal.title')}</h1>
+    <p class="page-sub">${t('normal.subtitle', { n: profile.checkins.length })}</p>
   </header>`;
 }
 
 function progressCard(progress) {
   return `<section class="card card-accent" style="margin-bottom:var(--s4)">
     <div class="row" style="gap:var(--s5)">
-      ${ringProgress(progress.ratio, `${progress.have}/${progress.need}`, 'ditë')}
+      ${ringProgress(progress.ratio, `${progress.have}/${progress.need}`, t('normal.days'))}
       <div style="flex:1;min-width:190px">
-        <span class="eyebrow">Baseline-i po ndërtohet</span>
+        <span class="eyebrow">${t('normal.buildingEyebrow')}</span>
         <p class="muted small mt-2">${progress.ready
-          ? `Krahasimet janë aktive. Edhe ${progress.need - progress.have} ditë e bëjnë baseline-in të plotë.`
-          : `Krahasimet nisin pas ${MIN_DAYS.change} ditësh. Deri atëherë nuk nxirret asnjë përfundim.`}</p>
+          ? t('normal.buildingActive', { n: progress.need - progress.have })
+          : t('normal.buildingWait', { n: MIN_DAYS.change })}</p>
       </div>
     </div>
   </section>`;
 }
 
 function statBox(factor, profile) {
-  const unit = factor.metric === 'sleep' ? 'orë' : '1–10';
+  const unit = factor.metric === 'sleep' ? t('core.hours') : '1–10';
   return `<div class="stat">
     <span class="stat-label">${icon(factor.metric, 15)} ${METRIC_LABELS[factor.metric]}</span>
     <div class="stat-value">${fmtNum(factor.base)}<span class="stat-unit">${unit}</span></div>
     <div class="stat-spark">${sparkline(metricValues(profile.checkins, factor.metric), { color: factor.flagged ? 'var(--signal)' : 'var(--cyan)' })}</div>
-    <div class="stat-foot">tani ${fmtNum(factor.recent)} · ${arrowFor(factor.pct)} ${fmtPct(factor.pct)}</div>
-    <div class="stat-foot">${factor.baselineDays} + ${factor.recentDays} ditë</div>
+    <div class="stat-foot">${t('normal.now')} ${fmtNum(factor.recent)} · ${arrowFor(factor.pct)} ${fmtPct(factor.pct)}</div>
+    <div class="stat-foot">${factor.baselineDays} + ${factor.recentDays} ${t('normal.days')}</div>
   </div>`;
 }
 
 function legend(profile) {
   return `<div class="legend" aria-hidden="true">
-    <span style="color:var(--cyan)"><i class="l-line"></i>vlera ditore</span>
-    <span style="color:var(--lavender)"><i class="l-dash"></i>mesatarja lëvizëse 7-ditore</span>
-    <span><i class="l-band"></i>brezi i normales (± devijimi)</span>
-    <span style="color:var(--accent)"><i class="l-line"></i>mesatarja e baseline-it</span>
-    <span style="color:var(--signal)"><i class="l-band" style="background:var(--signal-soft)"></i>${profile.settings.recentDays} ditët e fundit</span>
+    <span style="color:var(--cyan)"><i class="l-line"></i>${t('normal.lgDaily')}</span>
+    <span style="color:var(--lavender)"><i class="l-dash"></i>${t('normal.lgAvg')}</span>
+    <span><i class="l-band"></i>${t('normal.lgBand')}</span>
+    <span style="color:var(--accent)"><i class="l-line"></i>${t('normal.lgBase')}</span>
+    <span style="color:var(--signal)"><i class="l-band" style="background:var(--signal-soft)"></i>${t('normal.lgRecent', { n: profile.settings.recentDays })}</span>
   </div>`;
 }
 
 function dayLegend() {
   return `<div class="legend" aria-hidden="true">
-    <span><i class="l-base"></i>baseline</span>
-    <span><i class="l-recent"></i>7 ditët e fundit</span>
-    <span><i class="l-missing"></i>pa check-in</span>
-    <span>● sot</span>
+    <span><i class="l-base"></i>${t('normal.lgBaseline')}</span>
+    <span><i class="l-recent"></i>${t('normal.lgLast7')}</span>
+    <span><i class="l-missing"></i>${t('normal.lgMissing')}</span>
+    <span>● ${t('normal.lgToday')}</span>
   </div>`;
 }
 
@@ -148,19 +147,19 @@ function drawChart(container, app) {
     baseMean: stats.mean,
     baseStd: stats.std,
     range: METRIC_RANGES[chosenMetric],
-    yTitle: chosenMetric === 'sleep' ? 'Orë gjumi' : `${label} (1–10)`,
+    yTitle: chosenMetric === 'sleep' ? t('core.sleepHours') : `${label} (1–10)`,
     metricLabel: label,
-    unit: chosenMetric === 'sleep' ? ' orë' : '',
-    alt: `${label} gjatë ${checkins.length} ditëve të regjistruara`,
+    unit: chosenMetric === 'sleep' ? ` ${t('core.hoursShort')}` : '',
+    alt: t('normal.chartAlt', { label, n: checkins.length }),
     summaryId: 'chart-summary'
   });
-  container.querySelector('#chart-title').textContent = `${label} gjatë ${checkins.length} ditëve`;
+  container.querySelector('#chart-title').textContent = t('normal.chartTitle', { label, n: checkins.length });
   container.querySelector('#chart-summary').textContent = chartSummary(checkins, values, averages, stats, recent, label);
   mountChartTips(host);
 }
 
 function chartSummary(checkins, values, averages, stats, recent, label) {
-  const unit = chosenMetric === 'sleep' ? ' orë' : '';
+  const unit = chosenMetric === 'sleep' ? ` ${t('core.hoursShort')}` : '';
   const recentValues = metricValues(recent, chosenMetric).filter(Number.isFinite);
   const recentMean = recentValues.length ? recentValues.reduce((sum, value) => sum + value, 0) / recentValues.length : null;
   let low = null;
@@ -171,13 +170,13 @@ function chartSummary(checkins, values, averages, stats, recent, label) {
     if (!high || value > high.value) high = { value, date: checkins[index].date };
   });
   const latestAverage = [...averages].reverse().find(Number.isFinite);
-  const parts = [`Përmbledhje me tekst: ${label}.`];
+  const parts = [t('normal.sumIntro', { label })];
   parts.push(Number.isFinite(stats.mean)
-    ? `Normalja ${fmtNum(stats.mean)}${unit} (± ${fmtNum(stats.std)}), nga ${stats.n} ditë.`
-    : 'Normalja ende nuk ekziston.');
-  parts.push(`${recent.length} ditët e fundit: ${fmtNum(recentMean)}${unit}.`);
-  parts.push(Number.isFinite(latestAverage) ? `Mesatarja lëvizëse 7-ditore më e fundit: ${fmtNum(latestAverage)}${unit}.` : 'Mesatarja lëvizëse kërkon të paktën 7 ditë.');
-  if (low && high) parts.push(`Më e ulëta ${fmtValue(low.value)}${unit} më ${formatDateLong(low.date)}; më e larta ${fmtValue(high.value)}${unit} më ${formatDateLong(high.date)}.`);
+    ? t('normal.sumNormal', { mean: fmtNum(stats.mean), unit, std: fmtNum(stats.std), n: stats.n })
+    : t('normal.sumNoNormal'));
+  parts.push(t('normal.sumRecent', { n: recent.length, value: fmtNum(recentMean), unit }));
+  parts.push(Number.isFinite(latestAverage) ? t('normal.sumAvg', { value: fmtNum(latestAverage), unit }) : t('normal.sumNoAvg'));
+  if (low && high) parts.push(t('normal.sumRange', { low: fmtValue(low.value), unit, lowDate: formatDateLong(low.date), high: fmtValue(high.value), highDate: formatDateLong(high.date) }));
   return parts.join(' ');
 }
 
@@ -187,7 +186,7 @@ function drawTimeline(container, app) {
   const days = timelineDays(app.profile.checkins, app.today, app.profile.settings);
   const selected = days.find(day => day.date === selectedDate) || null;
   host.innerHTML = `${dayTimeline(days, selected ? selected.date : null)}
-    ${selected ? dayDetail(selected) : '<p class="tiny mt-3">Asnjë ditë e zgjedhur. Shënimet shfaqen vetëm pasi zgjidhet një ditë.</p>'}`;
+    ${selected ? dayDetail(selected) : `<p class="tiny mt-3">${t('normal.noDay')}</p>`}`;
   wireTimeline(host, date => {
     selectedDate = selectedDate === date ? null : date;
     drawTimeline(container, app);

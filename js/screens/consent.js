@@ -1,25 +1,8 @@
 import { icon } from '../ui.js';
+import { t, tList, getLang, setLang, LANGUAGES } from '../i18n/index.js';
 
-const COLLECTED = [
-  ['calendar', 'Gjashtë numra në ditë: humori, gjumi, energjia, lidhja sociale, gëzimi dhe ngarkesa.'],
-  ['spark', 'Tags të aktiviteteve, p.sh. basketboll ose mësim. I zgjedh ti.'],
-  ['edit', 'Një shënim i shkurtër, vetëm nëse do ta shkruash.']
-];
-
-const WHY = [
-  ['pulse', 'Që të ndërtohet "My Normal" — mesatarja jote personale, jo një normë e përgjithshme.'],
-  ['shift', 'Që të vërehet kur patterni yt ndryshon krahasuar me ty vetë.'],
-  ['users', 'Që të kesh ndihmë konkrete kur do të afrohesh me dikë që e ke zgjedhur vetë.']
-];
-
-const NEVER = [
-  'Nuk përdor kamerë dhe nuk lexon fytyra apo emocione.',
-  'Nuk të vendos diagnozë dhe nuk emërton asnjë gjendje mjekësore. Raporton vetëm sa lëvizën numrat e tu.',
-  'Nuk dërgon asnjë mesazh, email apo njoftim në vend tëndin.',
-  'Nuk të krahason me persona të tjerë apo me ndonjë standard.',
-  'Nuk ka analytics, reklama apo shitje të dhënash.',
-  'Pa llogari, nuk i çon të dhënat askund — gjithçka rri në këtë pajisje. Llogaria është opsionale dhe ruan vetëm një kopje të enkriptuar në pajisje.'
-];
+const COLLECTED_ICONS = ['calendar', 'spark', 'edit'];
+const WHY_ICONS = ['pulse', 'shift', 'users'];
 
 export function renderConsent(container, app) {
   container.innerHTML = markup();
@@ -45,51 +28,55 @@ export function renderConsent(container, app) {
       app.acceptConsent(button.dataset.mode, aiToggle.checked);
     });
   }
+
+  // Gjuha ndërrohet vetëm në memorie: para pëlqimit nuk shkruhet asgjë në pajisje.
+  container.querySelector('[data-consent-lang]').addEventListener('click', () => setLang(getLang() === 'sq' ? 'en' : 'sq'));
 }
 
-function factList(items) {
-  return items.map(([name, text]) =>
-    `<li class="fact"><span class="fact-ic">${icon(name, 17)}</span><span>${text}</span></li>`
+function factList(icons, key) {
+  return tList(key).map((text, index) =>
+    `<li class="fact"><span class="fact-ic">${icon(icons[index], 17)}</span><span>${text}</span></li>`
   ).join('');
 }
 
 function markup() {
+  const other = getLang() === 'sq' ? 'en' : 'sq';
   return `<div class="consent-page">
     <div class="consent-card">
       <div class="consent-hero texture">
         <div>
-          <div class="consent-logo">
-            ${logoMark()}
-            <div>
-              <div class="brand-name">A JE MIRË? 2036</div>
-              <div class="brand-sub">KosICT 15 · Kosova 2036</div>
+          <div class="row-between" style="align-items:flex-start">
+            <div class="consent-logo">
+              ${logoMark()}
+              <div>
+                <div class="brand-name">A JE MIRË? 2036</div>
+                <div class="brand-sub">KosICT 15 · Kosova 2036</div>
+              </div>
             </div>
+            <button type="button" class="btn btn-sm" data-consent-lang lang="${other}">${LANGUAGES[other].core.languageName}</button>
           </div>
-          <h1 class="consent-title">Patterni yt.<br>Vetëm i yti.</h1>
-          <p class="consent-lede">Ky sistem mëson se si duket një javë e zakonshme për ty, dhe të tregon kur diçka ndryshon krahasuar me ty vetë — jo me askënd tjetër.</p>
+          <h1 class="consent-title">${t('consent.title')}</h1>
+          <p class="consent-lede">${t('consent.lede')}</p>
         </div>
       </div>
 
       <div class="card stack">
         <div>
-          <h2 class="card-title">Çfarë mblidhet</h2>
-          <ul class="facts" style="margin-top:var(--s3)">${factList(COLLECTED)}</ul>
+          <h2 class="card-title">${t('consent.collectedTitle')}</h2>
+          <ul class="facts" style="margin-top:var(--s3)">${factList(COLLECTED_ICONS, 'consent.collected')}</ul>
         </div>
 
         <div>
-          <h2 class="card-title">Pse mblidhet</h2>
-          <ul class="facts" style="margin-top:var(--s3)">${factList(WHY)}</ul>
+          <h2 class="card-title">${t('consent.whyTitle')}</h2>
+          <ul class="facts" style="margin-top:var(--s3)">${factList(WHY_ICONS, 'consent.why')}</ul>
         </div>
 
         <details class="collapse">
-          <summary>${icon('shield', 16)} Ku ruhet dhe çfarë nuk bën kurrë ky sistem</summary>
+          <summary>${icon('shield', 16)} ${t('consent.whereTitle')}</summary>
           <div class="collapse-body stack">
-            <p style="color:var(--text-2);font-size:var(--fs-sm)">
-              Të dhënat ruhen vetëm në <strong>localStorage</strong> të këtij shfletuesi, nën një çelës të vetëm:
-              <code>ajemire.v1</code>. Llogaria me email është opsionale dhe mund ta shtosh më vonë, vetëm nëse do kopje rezervë. Mund t'i eksportosh ose t'i fshish të gjitha në çdo moment.
-            </p>
+            <p style="color:var(--text-2);font-size:var(--fs-sm)">${t('consent.where')}</p>
             <ul class="facts">
-              ${NEVER.map(text => `<li class="fact fact-no"><span class="fact-ic">${icon('close', 15)}</span><span>${text}</span></li>`).join('')}
+              ${tList('consent.never').map(text => `<li class="fact fact-no"><span class="fact-ic">${icon('close', 15)}</span><span>${text}</span></li>`).join('')}
             </ul>
           </div>
         </details>
@@ -98,8 +85,8 @@ function markup() {
           <input type="checkbox" id="consent-store">
           <span class="switch" aria-hidden="true"></span>
           <span class="switch-text">
-            <strong>Ruaj check-ins në këtë pajisje</strong>
-            <span>E domosdoshme. Pa këtë, aplikacioni nuk mban asgjë dhe nuk ka çfarë të krahasojë.</span>
+            <strong>${t('consent.store')}</strong>
+            <span>${t('consent.storeHint')}</span>
           </span>
         </label>
 
@@ -107,32 +94,32 @@ function markup() {
           <input type="checkbox" id="consent-ai">
           <span class="switch" aria-hidden="true"></span>
           <span class="switch-text">
-            <strong>Ndihmë opsionale për tekstin</strong>
-            <span>Reflektim javor dhe drafte mesazhesh, të ndërtuara nga template lokale në pajisje. Pa internet, pa API.</span>
+            <strong>${t('consent.textHelp')}</strong>
+            <span>${t('consent.textHelpHint')}</span>
           </span>
         </label>
 
         <div>
-          <p class="sheet-title">Si do të fillosh</p>
+          <p class="sheet-title">${t('consent.start')}</p>
           <div class="consent-cols">
             <button type="button" class="consent-choice" data-mode="demo" disabled>
               <span class="fact-ic">${icon('spark', 20)}</span>
               <span>
-                <strong>Shiko demon 30-ditore</strong>
-                <span>Profil sintetik i gjeneruar nga kodi. Jo i një personi të vërtetë.</span>
+                <strong>${t('consent.demo')}</strong>
+                <span>${t('consent.demoHint')}</span>
               </span>
             </button>
             <button type="button" class="consent-choice" data-mode="private" disabled>
               <span class="fact-ic">${icon('shield', 20)}</span>
               <span>
-                <strong>Nis profil privat bosh</strong>
-                <span>Zero të dhëna. Baseline-i ndërtohet nga check-ins e tua.</span>
+                <strong>${t('consent.private')}</strong>
+                <span>${t('consent.privateHint')}</span>
               </span>
             </button>
           </div>
         </div>
 
-        <p class="card-note">Asgjë nuk shkruhet në këtë pajisje derisa të shtypësh njërin nga dy butonat e mësipërm.</p>
+        <p class="card-note">${t('consent.nothingWritten')}</p>
       </div>
     </div>
   </div>`;

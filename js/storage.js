@@ -1,4 +1,5 @@
 import { METRICS, METRIC_RANGES } from './patterns.js';
+import { t } from './i18n/index.js';
 
 // E vetmja derë për të shkruar dhe lexuar në localStorage.
 // Gjithçka rri nën një çelës të vetëm.
@@ -173,25 +174,25 @@ export function validateProfile(raw) {
   const warnings = [];
 
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    return { ok: false, errors: ['Fajlli nuk përmban një objekt profili.'], warnings, profile: null };
+    return { ok: false, errors: [t('data.errNoProfile')], warnings, profile: null };
   }
   if (!Array.isArray(raw.checkins)) {
-    return { ok: false, errors: ['Mungon lista "checkins".'], warnings, profile: null };
+    return { ok: false, errors: [t('data.errNoCheckins')], warnings, profile: null };
   }
 
   const seenDates = new Set();
   const checkins = [];
   raw.checkins.forEach((entry, index) => {
     if (!entry || typeof entry !== 'object') {
-      warnings.push(`Rreshti ${index + 1} u anashkalua: nuk është objekt.`);
+      warnings.push(t('data.warnNotObject', { n: index + 1 }));
       return;
     }
     if (!DATE_PATTERN.test(entry.date)) {
-      warnings.push(`Rreshti ${index + 1} u anashkalua: data "${entry.date}" nuk është në formatin VVVV-MM-DD.`);
+      warnings.push(t('data.warnBadDate', { n: index + 1, date: entry.date }));
       return;
     }
     if (seenDates.has(entry.date)) {
-      warnings.push(`Data ${entry.date} ishte e dyfishtë; u mbajt vetëm e para.`);
+      warnings.push(t('data.warnDuplicate', { date: entry.date }));
       return;
     }
     seenDates.add(entry.date);
@@ -204,7 +205,7 @@ export function validateProfile(raw) {
         clean[metric] = value;
       } else if (value !== undefined && value !== null) {
         // Vlera jashtë kufijve nuk bëhet zero — thjesht nuk merret.
-        warnings.push(`${entry.date}: "${metric}" jashtë kufijve, u lanë bosh.`);
+        warnings.push(t('data.warnRange', { date: entry.date, metric }));
       }
     }
     clean.activities = Array.isArray(entry.activities)
@@ -214,7 +215,7 @@ export function validateProfile(raw) {
     checkins.push(clean);
   });
 
-  if (checkins.length === 0) errors.push('Asnjë check-in i vlefshëm nuk u gjet në fajll.');
+  if (checkins.length === 0) errors.push(t('data.errNoValid'));
   if (errors.length > 0) return { ok: false, errors, warnings, profile: null };
 
   checkins.sort((left, right) => left.date.localeCompare(right.date));
@@ -236,6 +237,6 @@ export function importFromText(text) {
   try {
     return validateProfile(JSON.parse(text));
   } catch (error) {
-    return { ok: false, errors: ['Fajlli nuk është JSON i vlefshëm.'], warnings: [], profile: null };
+    return { ok: false, errors: [t('data.errNotJson')], warnings: [], profile: null };
   }
 }

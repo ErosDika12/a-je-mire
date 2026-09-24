@@ -4,6 +4,7 @@ import {
   METRICS, METRIC_LABELS, METRIC_UNITS, METRIC_ENDS, METRIC_RANGES,
   SUGGESTED_TAGS, allTags, tagLabel
 } from '../patterns.js';
+import { t } from '../i18n/index.js';
 
 const DEFAULTS = { mood: 6, sleep: 7.5, energy: 6, social: 6, joy: 6, load: 5 };
 
@@ -30,39 +31,39 @@ function markup(today, values, tags, chosen, existing) {
   return `
     <header class="page-head">
       <span class="eyebrow">${escapeHtml(formatWeekday(today))}</span>
-      <h1 class="page-title mt-2">Check-in</h1>
-      <p class="page-sub">Gjashtë rrëshqitës. Plotësohet për më pak se 20 sekonda.</p>
-      ${existing ? `<p class="pill pill-accent pill-wrap mt-3">${icon('info', 13)}<span>Ke një check-in të ruajtur sot. Ruajtja e re e zëvendëson të njëjtën ditë.</span></p>` : ''}
+      <h1 class="page-title mt-2">${t('checkin.title')}</h1>
+      <p class="page-sub">${t('checkin.subtitle')}</p>
+      ${existing ? `<p class="pill pill-accent pill-wrap mt-3">${icon('info', 13)}<span>${t('checkin.existing')}</span></p>` : ''}
     </header>
 
     <div class="g-12">
       <section class="card card-accent span-7" aria-labelledby="sliders-title">
-        <span class="eyebrow">Gjashtë matjet</span>
-        <h2 class="card-title" id="sliders-title">Si ishte dita</h2>
-        <p class="card-sub">Me gisht, me mi ose me shigjetat e tastierës.</p>
+        <span class="eyebrow">${t('checkin.sixEyebrow')}</span>
+        <h2 class="card-title" id="sliders-title">${t('checkin.sixTitle')}</h2>
+        <p class="card-sub">${t('checkin.sixHint')}</p>
         <div class="mt-4">${METRICS.map(metric => sliderMarkup(metric, values[metric])).join('')}</div>
       </section>
 
       <div class="span-5 stack">
         <section class="card" aria-labelledby="tags-title">
-          <span class="eyebrow">Opsionale</span>
-          <h2 class="card-title" id="tags-title">Aktivitetet e sotme</h2>
-          <p class="card-sub">Përdoren te What Helps Me?</p>
+          <span class="eyebrow">${t('checkin.optional')}</span>
+          <h2 class="card-title" id="tags-title">${t('checkin.tagsTitle')}</h2>
+          <p class="card-sub">${t('checkin.tagsHint')}</p>
           <div class="tag-wrap mt-4" id="checkin-tags">${tags.map(tag => tagMarkup(tag, chosen.includes(tag))).join('')}</div>
           <div class="field mt-4">
-            <label for="new-tag">Shto aktivitet tëndin</label>
+            <label for="new-tag">${t('checkin.addTag')}</label>
             <div class="row" style="flex-wrap:nowrap;gap:var(--s2)">
-              <input type="text" id="new-tag" maxlength="24" placeholder="p.sh. kitarë" autocomplete="off" enterkeyhint="done">
-              <button type="button" class="icon-btn" id="add-tag" aria-label="Shto aktivitetin">${icon('plus', 18)}</button>
+              <input type="text" id="new-tag" maxlength="24" placeholder="${escapeHtml(t('checkin.tagPlaceholder'))}" autocomplete="off" enterkeyhint="done">
+              <button type="button" class="icon-btn" id="add-tag" aria-label="${escapeHtml(t('checkin.addTagAria'))}">${icon('plus', 18)}</button>
             </div>
           </div>
         </section>
 
         <section class="panel" aria-labelledby="note-title">
-          <span class="eyebrow">Opsionale</span>
-          <h2 class="card-title" id="note-title"><label for="checkin-note">Shënim</label></h2>
-          <p class="card-sub">Mbetet në këtë pajisje. Përdoret vetëm për fjalët kryesore.</p>
-          <textarea id="checkin-note" class="mt-3" maxlength="300" rows="3" placeholder="Çfarë ndodhi sot?"></textarea>
+          <span class="eyebrow">${t('checkin.optional')}</span>
+          <h2 class="card-title" id="note-title"><label for="checkin-note">${t('checkin.note')}</label></h2>
+          <p class="card-sub">${t('checkin.noteHint')}</p>
+          <textarea id="checkin-note" class="mt-3" maxlength="300" rows="3" placeholder="${escapeHtml(t('checkin.notePlaceholder'))}"></textarea>
         </section>
       </div>
     </div>
@@ -70,7 +71,7 @@ function markup(today, values, tags, chosen, existing) {
     <div class="row-between mt-5">
       <p class="status" id="checkin-status" role="status" aria-live="polite"></p>
       <button type="button" class="btn btn-primary" id="checkin-save">
-        ${icon('check', 16)} <span>${existing ? 'Përditëso check-in' : 'Ruaj check-in'}</span>
+        ${icon('check', 16)} <span>${existing ? t('checkin.update') : t('checkin.save')}</span>
       </button>
     </div>`;
 }
@@ -165,14 +166,14 @@ function save(container, app, chosen) {
   const stored = app.save();
   const button = container.querySelector('#checkin-save');
   button.classList.add('is-done');
-  button.querySelector('span').textContent = isNew ? 'U ruajt' : 'U përditësua';
+  button.querySelector('span').textContent = isNew ? t('checkin.saved') : t('checkin.updated');
   setTimeout(() => {
     button.classList.remove('is-done');
-    button.querySelector('span').textContent = 'Përditëso check-in';
+    button.querySelector('span').textContent = t('checkin.update');
   }, 1600);
 
   container.querySelector('#checkin-status').textContent = stored
-    ? (isNew ? `Check-in-i u ruajt. Gjithsej ${checkins.length} ditë.` : 'Check-in-i i sotëm u përditësua.')
-    : 'Check-in-i u regjistrua për këtë sesion, por pajisja nuk lejoi ruajtjen.';
-  toast(stored ? (isNew ? 'Check-in-i u ruajt' : 'Check-in-i u përditësua') : 'Pajisja nuk lejoi ruajtjen', stored ? 'ok' : 'err');
+    ? (isNew ? t('checkin.statusSaved', { n: checkins.length }) : t('checkin.statusUpdated'))
+    : t('checkin.statusNotStored');
+  toast(stored ? (isNew ? t('checkin.toastSaved') : t('checkin.toastUpdated')) : t('checkin.toastNotStored'), stored ? 'ok' : 'err');
 }

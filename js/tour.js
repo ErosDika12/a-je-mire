@@ -1,17 +1,13 @@
 import { icon } from './ui.js';
 import { escapeHtml } from './format.js';
+import { t } from './i18n/index.js';
 
-// Prezantimi i udhëhequr: tetë ndalesa, dy deri tre minuta.
-const STEPS = [
-  { screen: 'data',    title: 'Profili sintetik',   note: '30 ditë të gjeneruara nga kodi. Asnjë e dhënë e një personi të vërtetë.' },
-  { screen: 'normal',  title: 'My Normal',          note: 'Mesatarja jote nga 23 ditët bazë. Pika e krahasimit, jo një normë e përgjithshme.' },
-  { screen: 'changed', title: 'Something Changed',  note: 'Katër nga gjashtë matjet lëvizën më shumë se zakonisht gjatë shtatë ditëve të fundit.' },
-  { screen: 'why',     title: 'Why?',               note: 'Cilat matje lëvizën bashkë. Shoqërim në të dhënat e tua, jo shkak.' },
-  { screen: 'helps',   title: 'What Helps Me?',     note: 'Aktivitetet e renditura sipas ditëve reale pas tyre, jo sipas sugjerimeve të përgjithshme.' },
-  { screen: 'kafe',    title: 'Lidhjet · KAFE?',    note: 'Një hap i vogël social. Sistemi përgatit draftin; dërgimin e bën vetë njeriu.' },
-  { screen: 'wall',    title: 'Lidhjet · Wall',     note: 'Njerëzit e zgjedhur vetë, pa pikë dhe pa renditje sipas rëndësisë.' },
-  { screen: 'privacy', title: 'Privatësia',         note: 'Pa llogari asgjë nuk largohet nga pajisja. Llogaria opsionale ruan vetëm një kopje të enkriptuar në pajisje.' }
-];
+// Prezantimi i udhëhequr: tetë ndalesa, dy deri tre minuta. Tekstet janë te comp.tour.<ekrani>.
+const STEPS = ['data', 'normal', 'changed', 'why', 'helps', 'kafe', 'wall', 'privacy'].map(screen => ({
+  screen,
+  get title() { return t(`comp.tour.${screen}.title`); },
+  get note() { return t(`comp.tour.${screen}.note`); }
+}));
 
 let index = 0;
 let active = false;
@@ -48,17 +44,17 @@ function draw() {
   const host = document.getElementById('tour-host');
   if (!host) return;
   const step = STEPS[index];
-  host.innerHTML = `<div class="tour-bar" id="tour-bar" role="region" aria-label="Prezantim i udhëhequr">
+  host.innerHTML = `<div class="tour-bar" id="tour-bar" role="region" aria-label="${t('comp.tourLabel')}">
     <div class="tour-text">
-      <p class="tour-step">Hapi ${index + 1} nga ${STEPS.length} · ${escapeHtml(step.title)}</p>
+      <p class="tour-step">${escapeHtml(t('comp.tourStep', { n: index + 1, total: STEPS.length, title: step.title }))}</p>
       <p class="tour-note">${escapeHtml(step.note)}</p>
       <div class="tour-dots" aria-hidden="true">
         ${STEPS.map((item, position) => `<i class="${position <= index ? 'is-on' : ''}"></i>`).join('')}
       </div>
     </div>
     <div class="tour-nav">
-      <button type="button" class="icon-btn" data-prev ${index === 0 ? 'disabled' : ''} aria-label="Hapi i mëparshëm">${icon('back', 18)}</button>
-      <button type="button" class="icon-btn" data-next aria-label="${index === STEPS.length - 1 ? 'Mbyll prezantimin' : 'Hapi tjetër'}">
+      <button type="button" class="icon-btn" data-prev ${index === 0 ? 'disabled' : ''} aria-label="${t('comp.tourPrev')}">${icon('back', 18)}</button>
+      <button type="button" class="icon-btn" data-next aria-label="${index === STEPS.length - 1 ? t('comp.tourClose') : t('comp.tourNext')}">
         ${index === STEPS.length - 1 ? icon('close', 18) : icon('next', 18)}
       </button>
     </div>

@@ -3,6 +3,7 @@
 // Pikat që kanë tooltip mbajnë data-tip, data-x dhe data-y në koordinatat e viewBox-it.
 
 import { clean } from './stats.js';
+import { t } from './i18n/index.js';
 import {
   escapeHtml, fmtNum, fmtValue, formatDateLong, formatDateShort, initials, truncate
 } from './format.js';
@@ -119,7 +120,7 @@ function recentZone(frame, config, x) {
   const firstRecent = frame.count - recent;
   const start = (x(firstRecent - 1) + x(firstRecent)) / 2;
   return `<rect class="zone-recent" x="${start.toFixed(1)}" y="${frame.top}" width="${(frame.right - start).toFixed(1)}" height="${frame.bottom - frame.top}"/>
-    <text class="axis-text" x="${(frame.right - 4).toFixed(1)}" y="${frame.top + 12}" text-anchor="end">${recent} ditët e fundit</text>`;
+    <text class="axis-text" x="${(frame.right - 4).toFixed(1)}" y="${frame.top + 12}" text-anchor="end">${t('comp.chartRecent', { n: recent })}</text>`;
 }
 
 function seriesLines(config, x, y) {
@@ -139,7 +140,7 @@ function seriesPoints(config, x, y) {
     const isRecent = index >= count - config.recentCount;
     const average = config.averages[index];
     const tip = `${formatDateLong(config.dates[index])} · ${config.metricLabel}: ${fmtValue(value)}${config.unit}`
-      + ` · Mesatarja 7-ditore: ${Number.isFinite(average) ? fmtNum(average) : 'ende pa 7 ditë'}`;
+      + ` · ${t('comp.chartAvg', { v: Number.isFinite(average) ? fmtNum(average) : t('comp.chartNoAvg') })}`;
     return `<g>
       <circle class="pt-focus" cx="${px}" cy="${py}" r="8"/>
       <circle class="pt${isRecent ? ' is-recent' : ''}" cx="${px}" cy="${py}" r="3.6"/>
@@ -202,7 +203,7 @@ export function relationshipChart(links, labels) {
     const from = positions[link.a];
     const to = positions[link.b];
     const color = link.r > 0 ? 'var(--accent)' : 'var(--lavender)';
-    const tip = `${labels[link.a]} ↔ ${labels[link.b]} · r = ${fmtNum(link.r, 2)} · ${link.n} ditë`;
+    const tip = `${labels[link.a]} ↔ ${labels[link.b]} · r = ${fmtNum(link.r, 2)} · ${t('comp.chartDays', { n: link.n })}`;
     return `<line x1="${from.x.toFixed(1)}" y1="${from.y.toFixed(1)}" x2="${to.x.toFixed(1)}" y2="${to.y.toFixed(1)}"
       stroke="${color}" stroke-width="${(1 + Math.abs(link.r) * 4).toFixed(2)}" stroke-linecap="round" opacity="0.85"
       data-tip="${escapeHtml(tip)}" data-x="${((from.x + to.x) / 2).toFixed(1)}" data-y="${((from.y + to.y) / 2).toFixed(1)}"/>`;
@@ -216,8 +217,8 @@ export function relationshipChart(links, labels) {
   }).join('');
 
   return `<div class="chart-wrap" style="max-width:360px;margin:0 auto">
-    <svg class="chart" viewBox="0 0 ${size} ${size}" role="img" tabindex="0" aria-label="Harta e lidhjeve mes gjashtë matjeve">
-      <title>Harta e lidhjeve mes gjashtë matjeve</title>${edges}${nodes}
+    <svg class="chart" viewBox="0 0 ${size} ${size}" role="img" tabindex="0" aria-label="${t('comp.mapLabel')}">
+      <title>${t('comp.mapLabel')}</title>${edges}${nodes}
     </svg>
     <div class="chart-tip" aria-hidden="true"></div>
   </div>`;
@@ -245,7 +246,7 @@ export function scatterPlot(config) {
     const px = x(group.x).toFixed(1);
     const py = y(group.y).toFixed(1);
     const radius = 3.5 + 2 * Math.sqrt(group.count - 1);
-    const tip = `${config.xLabel}: ${fmtValue(group.x)} · ${config.yLabel}: ${fmtValue(group.y)} · ${group.count} ditë`;
+    const tip = `${config.xLabel}: ${fmtValue(group.x)} · ${config.yLabel}: ${fmtValue(group.y)} · ${t('comp.chartDays', { n: group.count })}`;
     return `<g><circle class="pt-focus" cx="${px}" cy="${py}" r="${(radius + 4).toFixed(1)}"/>
       <circle class="scatter-pt" cx="${px}" cy="${py}" r="${radius.toFixed(1)}" data-tip="${escapeHtml(tip)}" data-x="${px}" data-y="${py}"/></g>`;
   }).join('');
@@ -289,7 +290,7 @@ export function wallChart(people) {
     const angle = (index / people.length) * Math.PI * 2 - Math.PI / 2;
     const nx = center.x + Math.cos(angle) * radius;
     const ny = center.y + Math.sin(angle) * radius;
-    const tip = `${person.name} · ${person.relation || 'pa lidhje të shënuar'} · ${person.lastLabel}`;
+    const tip = `${person.name} · ${person.relation || t('comp.noRelation')} · ${person.lastLabel}`;
     return `<line class="wall-line" x1="${center.x}" y1="${center.y}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}"/>
       <g data-tip="${escapeHtml(tip)}" data-x="${nx.toFixed(1)}" data-y="${(ny - 26).toFixed(1)}">
         <circle class="pt-focus" cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="30"/>
@@ -302,11 +303,11 @@ export function wallChart(people) {
   }).join('');
 
   return `<div class="chart-wrap">
-    <svg class="wall-svg" viewBox="0 0 ${width} ${height}" role="img" tabindex="0" aria-label="Connection Wall: ti në qendër dhe ${people.length} ${people.length === 1 ? 'person' : 'persona'} përreth">
+    <svg class="wall-svg" viewBox="0 0 ${width} ${height}" role="img" tabindex="0" aria-label="${escapeHtml(t('comp.wallLabel', { n: people.length, people: people.length === 1 ? t('comp.person') : t('comp.persons') }))}">
       <title>Connection Wall</title>
       ${nodes}
       <circle class="wall-center" cx="${center.x}" cy="${center.y}" r="30"/>
-      <text x="${center.x}" y="${center.y + 5}" text-anchor="middle" fill="var(--text)" font-size="14" font-weight="700" font-family="system-ui, sans-serif">Ti</text>
+      <text x="${center.x}" y="${center.y + 5}" text-anchor="middle" fill="var(--text)" font-size="14" font-weight="700" font-family="system-ui, sans-serif">${t('comp.you')}</text>
     </svg>
     <div class="chart-tip" aria-hidden="true"></div>
   </div>`;

@@ -1,4 +1,5 @@
 import { mean, std, pctChange, zScore, corr } from './stats.js';
+import { t } from './i18n/index.js';
 
 // Gjashtë metrikat, gjithmonë në këtë rend.
 export const METRICS = ['mood', 'sleep', 'energy', 'social', 'joy', 'load'];
@@ -7,29 +8,17 @@ export const METRICS = ['mood', 'sleep', 'energy', 'social', 'joy', 'load'];
 // më shumë ngarkesë do të thotë më keq. Ky objekt është burimi i vetëm i këtij rregulli.
 export const WORSE = { mood: -1, sleep: -1, energy: -1, social: -1, joy: -1, load: +1 };
 
-export const METRIC_LABELS = {
-  mood: 'Humori',
-  sleep: 'Gjumi',
-  energy: 'Energjia',
-  social: 'Lidhja sociale',
-  joy: 'Gëzimi',
-  load: 'Ngarkesa'
-};
+// Etiketat lexohen nga përkthimet në çastin e përdorimit, që ndërrimi i gjuhës të mos kërkojë rindezje.
+// Getter-a të numërueshëm, që Object.keys/entries të japin gjashtë metrikat si më parë.
+const translated = read => Object.defineProperties({}, Object.fromEntries(
+  METRICS.map(metric => [metric, { get: () => read(metric), enumerable: true }])));
 
-export const METRIC_UNITS = {
-  mood: '1–10', sleep: 'orë', energy: '1–10',
-  social: '1–10', joy: '1–10', load: '1–10'
-};
+export const METRIC_LABELS = translated(metric => t(`metrics.${metric}`));
+
+export const METRIC_UNITS = translated(metric => (metric === 'sleep' ? t('core.hours') : '1–10'));
 
 // Çfarë do të thotë skaji i poshtëm dhe i sipërm i çdo slideri.
-export const METRIC_ENDS = {
-  mood:   { low: 'shumë keq', high: 'shumë mirë' },
-  sleep:  { low: 'pak gjumë', high: 'gjumë i plotë' },
-  energy: { low: 'pa forcë', high: 'plot energji' },
-  social: { low: 'krejt vetëm', high: 'shumë i lidhur' },
-  joy:    { low: 'asgjë s’më gëzoi', high: 'shumë gëzim' },
-  load:   { low: 'pa ngarkesë', high: 'tepër i ngarkuar' }
-};
+export const METRIC_ENDS = translated(metric => ({ low: t(`core.ends.${metric}.low`), high: t(`core.ends.${metric}.high`) }));
 
 export const METRIC_RANGES = {
   mood:   { min: 1, max: 10, step: 1 },
@@ -49,14 +38,10 @@ export const SUGGESTED_TAGS = [
   'muzike', 'lexim', 'ekrani', 'provim', 'shtepi'
 ];
 
-const TAG_LABELS = {
-  basketboll: 'Basketboll', mesim: 'Mësim', familja: 'Familja', shoket: 'Shokët',
-  shetitje: 'Shëtitje', muzike: 'Muzikë', lexim: 'Lexim', ekrani: 'Ekrani',
-  provim: 'Provim', shtepi: 'Shtëpi', kafe: 'Kafe', telefonate: 'Telefonatë'
-};
+const TAG_KEYS = new Set([...SUGGESTED_TAGS, 'kafe', 'telefonate']);
 
 export function tagLabel(tag) {
-  if (TAG_LABELS[tag]) return TAG_LABELS[tag];
+  if (TAG_KEYS.has(tag)) return t(`core.tags.${tag}`);
   const text = String(tag || '');
   return text.charAt(0).toUpperCase() + text.slice(1);
 }

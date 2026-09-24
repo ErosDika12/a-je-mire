@@ -7,6 +7,7 @@ import { myNormal, tagLabel } from '../patterns.js';
 import { CONNECT_ACTIVITIES, daysSince, suggestConnection } from '../compose.js';
 import { PERSON_COLORS } from '../storage.js';
 import { emptyState as emptyBlock } from '../components.js';
+import { t } from '../i18n/index.js';
 
 const SOCIAL_TAGS = ['shoket', 'familja', 'basketboll', 'shetitje', 'kafe'];
 
@@ -16,10 +17,9 @@ export function renderWall(container, app) {
 
   if (people.length === 0) {
     container.innerHTML = `${head()}
-      <section class="card">${emptyBlock('network', 'Muri është bosh',
-        'Connection Wall vizatohet rreth njerëzve që shton te MY 5. Asgjë nuk importohet nga kontaktet.')}
+      <section class="card">${emptyBlock('network', t('wall.empty'), t('wall.emptyText'))}
         <div class="row" style="justify-content:center">
-          <button type="button" class="btn btn-primary" data-go="my5">${icon('users', 16)} Hap MY 5</button>
+          <button type="button" class="btn btn-primary" data-go="my5">${icon('users', 16)} ${t('wall.openMy5')}</button>
         </div>
       </section>`;
     wire(container, app);
@@ -37,8 +37,8 @@ export function renderWall(container, app) {
     ${head()}
     <section class="card">
       <div class="card-head"><div>
-        <h2 class="card-title">Harta jote</h2>
-        <p class="card-sub">Ti në qendër, ${people.length} ${people.length === 1 ? 'person' : 'persona'} rreth teje. Rendi është ai i shtimit — pa renditje sipas rëndësisë.</p>
+        <h2 class="card-title">${t('wall.mapTitle')}</h2>
+        <p class="card-sub">${t('wall.mapHint', { n: people.length, people: people.length === 1 ? t('wall.person') : t('wall.persons') })}</p>
       </div></div>
       <div class="desktop-only">
         ${wallChart(people.map(person => ({ ...person, color: person.color || PERSON_COLORS[0], lastLabel: gapLabel(gaps[person.name]) })))}
@@ -46,7 +46,7 @@ export function renderWall(container, app) {
       <div class="person-grid" style="margin-top:var(--s5)">
         ${people.map(person => wallCard(person, gaps[person.name])).join('')}
       </div>
-      <p class="card-note">Asnjë person nuk merr pikë, notë apo renditje cilësie. Muri tregon vetëm çfarë ke shënuar vetë.</p>
+      <p class="card-note">${t('wall.noScore')}</p>
     </section>
 
     ${planned ? plannedCard(planned) : ''}
@@ -59,18 +59,18 @@ export function renderWall(container, app) {
 
 function head() {
   return `<header class="page-head">
-    <h1 class="page-title">Connection Wall</h1>
-    <p class="page-sub">Njerëzit që ke zgjedhur, çfarë bëni bashkë, dhe kur është hera e fundit që e ke shënuar një kontakt.</p>
+    <h1 class="page-title">${t('wall.title')}</h1>
+    <p class="page-sub">${t('wall.subtitle')}</p>
   </header>`;
 }
 
 function gapLabel(gap) {
-  if (gap === null || gap === undefined) return 'pa datë kontakti';
-  return gap === 0 ? 'kontakt sot' : `${gap} ditë më parë`;
+  if (gap === null || gap === undefined) return t('wall.noDate');
+  return gap === 0 ? t('wall.today') : t('wall.daysAgo', { n: gap });
 }
 
 function wallCard(person, gap) {
-  const gapText = gap === null ? 'pa datë kontakti' : gap === 0 ? 'kontakt sot' : `${gap} ditë më parë`;
+  const gapText = gapLabel(gap);
   const fresh = gap !== null && gap <= 7;
   return `<article class="person">
     <div class="avatar" style="background:${escapeHtml(person.color || PERSON_COLORS[0])}" aria-hidden="true">${escapeHtml(initials(person.name))}</div>
@@ -80,7 +80,7 @@ function wallCard(person, gap) {
       <div class="person-meta">
         <span class="pill ${fresh ? 'pill-accent' : ''}" style="font-size:11px">${escapeHtml(gapText)}</span>
       </div>
-      <div class="person-meta">${icon('coffee', 12)} ${escapeHtml(CONNECT_ACTIVITIES[person.sharedActivity] || 'një kafe')}</div>
+      <div class="person-meta">${icon('coffee', 12)} ${escapeHtml(CONNECT_ACTIVITIES[person.sharedActivity] || t('wall.defaultActivity'))}</div>
     </div>
   </article>`;
 }
@@ -90,7 +90,7 @@ function plannedCard(planned) {
     <div class="card-head">
       <span class="fact-ic">${icon('coffee', 20)}</span>
       <div>
-        <h2 class="card-title">Lidhja e propozuar</h2>
+        <h2 class="card-title">${t('wall.planned')}</h2>
         <p class="card-sub">${escapeHtml(planned.reason)}</p>
       </div>
     </div>
@@ -98,22 +98,21 @@ function plannedCard(planned) {
       ${escapeHtml(planned.person.name)} · ${escapeHtml(planned.activityText)}
     </p>
     <div class="row" style="margin-top:var(--s4)">
-      <button type="button" class="btn btn-primary" data-go="kafe">${icon('edit', 16)} Përgatit mesazhin</button>
+      <button type="button" class="btn btn-primary" data-go="kafe">${icon('edit', 16)} ${t('wall.prepare')}</button>
     </div>
-    <p class="card-note">Propozim, jo detyrim. Asgjë nuk dërgohet automatikisht.</p>
+    <p class="card-note">${t('wall.plannedNote')}</p>
   </section>`;
 }
 
 function historyCard(profile, today) {
   const history = [...(profile.connections || [])].sort((left, right) => right.date.localeCompare(left.date));
   if (history.length === 0) {
-    return `<section class="card" style="margin-top:var(--s4)">${emptyBlock('calendar', 'Ende asnjë lidhje e shënuar',
-      'Kur të shënosh një takim ose bisedë te KAFE?, do të shfaqet këtu.')}</section>`;
+    return `<section class="card" style="margin-top:var(--s4)">${emptyBlock('calendar', t('wall.noHistory'), t('wall.noHistoryText'))}</section>`;
   }
   return `<section class="card" style="margin-top:var(--s4)">
     <div class="card-head"><div>
-      <h2 class="card-title">Historiku i lidhjeve</h2>
-      <p class="card-sub">${history.length} ${history.length === 1 ? 'lidhje e shënuar' : 'lidhje të shënuara'}</p>
+      <h2 class="card-title">${t('wall.history')}</h2>
+      <p class="card-sub">${history.length} ${history.length === 1 ? t('wall.oneRecorded') : t('wall.manyRecorded')}</p>
     </div></div>
     ${history.slice(0, 8).map(item => `<div class="moment">
       <span class="moment-date">${escapeHtml(item.date)}</span>
@@ -136,23 +135,22 @@ function findMoments(profile) {
 
 function momentsCard(moments) {
   if (moments.length === 0) {
-    return `<section class="card" style="margin-top:var(--s4)">${emptyBlock('spark', 'Ende asnjë moment i shënuar',
-      'Kur një ditë me shokët ose familjen del mbi normalen tënde, shfaqet këtu.')}</section>`;
+    return `<section class="card" style="margin-top:var(--s4)">${emptyBlock('spark', t('wall.noMoments'), t('wall.noMomentsText'))}</section>`;
   }
   return `<section class="card" style="margin-top:var(--s4)">
     <div class="card-head"><div>
-      <h2 class="card-title">Momente nga check-ins</h2>
-      <p class="card-sub">Ditë me njerëz ku lidhja sociale ose gëzimi ishin mbi normalen tënde</p>
+      <h2 class="card-title">${t('wall.moments')}</h2>
+      <p class="card-sub">${t('wall.momentsHint')}</p>
     </div></div>
     ${moments.map(entry => `<div class="moment">
       <span class="moment-date">${escapeHtml(entry.date)}</span>
       <span class="moment-body">
         ${(entry.activities || []).map(tag => `<span class="pill" style="font-size:11px">${escapeHtml(tagLabel(tag))}</span>`).join(' ')}
         <div style="margin-top:6px;color:var(--text-2)">${escapeHtml(entry.note || '—')}</div>
-        <div class="link-meta" style="margin-top:4px">lidhja sociale ${round(entry.social, 1)} · gëzimi ${round(entry.joy, 1)}</div>
+        <div class="link-meta" style="margin-top:4px">${t('wall.momentValues', { social: round(entry.social, 1), joy: round(entry.joy, 1) })}</div>
       </span>
     </div>`).join('')}
-    <p class="card-note">Këto janë ditët e tua, ashtu siç i ke shënuar. Pa vlerësim dhe pa renditje.</p>
+    <p class="card-note">${t('wall.momentsNote')}</p>
   </section>`;
 }
 

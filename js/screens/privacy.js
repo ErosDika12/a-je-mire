@@ -2,34 +2,27 @@
 // Kontakti është vendmbajtës i shënuar qartë: pilotit nuk i shpikim kompani apo adresë.
 import { icon, toast, copyText } from '../ui.js';
 import { escapeHtml } from '../format.js';
-import { POLICY_VERSION } from '../storage.js';
+import { POLICY_VERSION, recordConsent } from '../storage.js';
+import { t, tList, getLang, LANGUAGES } from '../i18n/index.js';
+import { APP_VERSION, setAnalyticsConsent } from '../analytics.js';
+import { isEnabled } from '../flags.js';
 
-export const APP_VERSION = '2.0.0';
-const CONTACT_PLACEHOLDER = '[VENDMBAJTËS — kontakti i pilotit do të shtohet këtu]';
+export { APP_VERSION };
 
-const CHANGELOG = [
-  ['2.0.0', '2026-09', [
-    'Llogari opsionale me email dhe verifikim.',
-    'Kopje rezervë e enkriptuar në pajisje, me fjalëkalim sinkronizimi të veçantë.',
-    'Qendra e sinkronizimit me zgjidhje të dukshme konfliktesh për të njëjtën datë.',
-    'Import me "zëvendëso" ose "bashko", dhe kopje lokale automatike para zëvendësimit.',
-    'Tri fshirje të ndara: lokale, cloud, llogari.',
-    'Funksionon offline si aplikacion (PWA).'
-  ]],
-  ['1.1.0', '2026-08', ['Ridizajn: Sot, grafikët, Patterns, What Helps Me.']],
-  ['1.0.0', '2026-07', ['Versioni i parë: check-in, My Normal, Something Changed, MY 5, KAFE?.']]
-];
+const CHANGELOG = [['2.1.0', '2026-09', 'v210'], ['2.0.0', '2026-09', 'v200'], ['1.1.0', '2026-08', 'v110'], ['1.0.0', '2026-07', 'v100']];
 
 let tab = 'privacy';
 
 export function renderPrivacy(container, app) {
-  const tabs = [['privacy', 'Privatësia'], ['terms', 'Kushtet'], ['help', 'Ndihma']];
+  const tabs = [['privacy', t('privacy.tabPrivacy')], ['terms', t('privacy.tabTerms')], ['help', t('privacy.tabHelp')]];
+  const reference = t('privacy.referenceNote');
   container.innerHTML = `
     <header class="page-head">
-      <h1 class="page-title">Privatësia</h1>
-      <p class="page-sub">Çfarë ruhet, ku, pse — dhe si e fshin. Versioni i politikës: ${POLICY_VERSION}.</p>
+      <h1 class="page-title">${t('privacy.title')}</h1>
+      <p class="page-sub">${t('privacy.subtitle', { v: POLICY_VERSION })}</p>
+      ${reference ? `<p class="small muted mt-2">${icon('info', 13)} ${reference}</p>` : ''}
     </header>
-    <div class="seg-control" role="group" aria-label="Seksioni">
+    <div class="seg-control" role="group" aria-label="${t('privacy.section')}">
       ${tabs.map(([key, label]) => `<button type="button" data-tab="${key}" aria-pressed="${tab === key}">${label}</button>`).join('')}
     </div>
     <div class="mt-4">${tab === 'privacy' ? privacyBody(app) : tab === 'terms' ? termsBody() : helpBody()}</div>`;
@@ -37,120 +30,126 @@ export function renderPrivacy(container, app) {
   for (const button of container.querySelectorAll('[data-tab]')) {
     button.addEventListener('click', () => { tab = button.dataset.tab; renderPrivacy(container, app); });
   }
+  if (tab === 'privacy') wireSettings(container, app);
   if (tab === 'help') wireHelp(container);
 }
 
+// keys: çelësat e privacy.* që shfaqen si pika; secila ka ikonën e vet.
 function list(items, kind = '') {
-  return `<ul class="facts">${items.map(([name, text]) =>
-    `<li class="fact ${kind}"><span class="fact-ic">${icon(name, 15)}</span><span>${text}</span></li>`).join('')}</ul>`;
+  return `<ul class="facts">${items.map(([name, key, params]) =>
+    `<li class="fact ${kind}"><span class="fact-ic">${icon(name, 15)}</span><span>${t(`privacy.${key}`, params)}</span></li>`).join('')}</ul>`;
+}
+
+function settingsCard(app) {
+  const analytics = isEnabled('analytics');
+  return `<section class="card card-accent">
+    <h2 class="card-title">${t('privacy.settingsTitle')}</h2>
+    <div class="field mt-3">
+      <label for="ui-language">${t('privacy.language')}</label>
+      <select id="ui-language">
+        ${Object.keys(LANGUAGES).map(lang => `<option value="${lang}" ${lang === getLang() ? 'selected' : ''} lang="${lang}">${escapeHtml(LANGUAGES[lang].core.languageName)}</option>`).join('')}
+      </select>
+    </div>
+    ${analytics ? `<label class="check-row mt-4"><input type="checkbox" id="analytics-consent" ${app.profile.settings.analytics ? 'checked' : ''}>
+        <span><strong>${t('privacy.analytics')}</strong><span class="small muted" style="display:block">${t('privacy.analyticsHint')}</span></span></label>` : ''}
+  </section>`;
 }
 
 function privacyBody(app) {
   return `
-    <section class="card">
-      <h2 class="card-title">Pa llogari (parazgjedhja)</h2>
-      <div class="mt-3">${list([
-        ['shield', 'Të gjitha të dhënat rrinë në <code>localStorage</code> të këtij shfletuesi. Asnjë kërkesë nuk shkon në server.'],
-        ['calendar', 'Ruhen: gjashtë matjet ditore, tags, shënimet, MY 5 dhe lidhjet që shënon vetë.'],
-        ['close', 'Asgjë nuk ruhet para se ta pranosh ruajtjen lokale.']
-      ])}</div>
+    ${settingsCard(app)}
+    <section class="card mt-4">
+      <h2 class="card-title">${t('privacy.noAccountTitle')}</h2>
+      <div class="mt-3">${list([['shield', 'noAccount1'], ['calendar', 'noAccount2'], ['close', 'noAccount3']])}</div>
     </section>
 
     <section class="card mt-4">
-      <h2 class="card-title">Me llogari (opsionale)</h2>
-      <div class="mt-3">${list([
-        ['doc', 'Serveri ruan: emailin, datën e krijimit, pëlqimet me datë, dhe <strong>një bllok teksti të enkriptuar</strong> me metadatat e tij (revizioni, ID e rastësishme e pajisjes, koha e ruajtjes).'],
-        ['lock', 'Enkriptimi bëhet në pajisjen tënde me AES-GCM 256-bit, me çelës të nxjerrë nga fjalëkalimi i sinkronizimit (PBKDF2-SHA256, 600 000 përsëritje, kripë e rastësishme). Fjalëkalimi dhe çelësi nuk ruhen dhe nuk dërgohen kurrë.'],
-        ['info', 'Kjo është enkriptim në anën e klientit për kopjen rezervë. Nuk e quajmë "end-to-end", sepse nuk ka komunikim mes personave.'],
-        ['cloud', 'Serveri është Supabase (BE, Frankfurt), me Row Level Security: çdo llogari mund të lexojë vetëm rreshtat e vet.'],
-        ['upload', 'Asgjë nuk ngarkohet automatikisht. Çdo ngarkim e nis ti pas një përmbledhjeje.']
-      ])}</div>
+      <h2 class="card-title">${t('privacy.accountTitle')}</h2>
+      <div class="mt-3">${list([['doc', 'account1'], ['lock', 'account2'], ['info', 'account3'], ['cloud', 'account4'], ['upload', 'account5']])}</div>
     </section>
 
     <section class="card mt-4">
-      <h2 class="card-title">Çfarë nuk bëjmë kurrë</h2>
-      <div class="mt-3">${list([
-        ['close', 'Pa diagnozë dhe pa emra gjendjesh mjekësore. Raportojmë vetëm sa lëvizën numrat e tu krahasuar me ty.'],
-        ['close', 'Pa kamerë dhe pa njohje emocionesh nga fytyra.'],
-        ['close', 'Pa mesazhe automatike te MY 5 — vetëm draft që e kopjon ti.'],
-        ['close', 'Pa pikë publike mirëqenieje, pa reklama, pa analytics, pa shitje të dhënash.'],
-        ['close', 'Nuk kërkojmë foto, telefon, adresë, vendndodhje, gjini apo datëlindje.'],
-        ['close', 'Pa hyrje me rrjete sociale.']
-      ], 'fact-no')}</div>
+      <h2 class="card-title">${t('privacy.socialTitle')}</h2>
+      <div class="mt-3">${list([['users', 'social1'], ['shield', 'social2'], ['lock', 'social3'], ['calendar', 'social4'], ['spark', 'social5']])}</div>
     </section>
 
     <section class="card mt-4">
-      <h2 class="card-title">Kontrolli yt</h2>
-      <div class="mt-3">${list([
-        ['download', 'Eksporto gjithçka si JSON te <a href="#/data" data-go="data">Të dhënat e mia</a>.'],
-        ['trash', 'Fshij të dhënat lokale, kopjen në cloud ose llogarinë — secila veç e veç, te <a href="#/account" data-go="account">Llogaria</a>.'],
-        ['doc', `Pëlqimet e tua në këtë pajisje: ${(app.profile.consentLog || []).length} të shënuara.`]
-      ])}</div>
+      <h2 class="card-title">${t('privacy.neverTitle')}</h2>
+      <div class="mt-3">${list([['close', 'never1'], ['close', 'never2'], ['close', 'never3'], ['close', 'never4'], ['close', 'never5'], ['close', 'never6']], 'fact-no')}</div>
+    </section>
+
+    <section class="card mt-4">
+      <h2 class="card-title">${t('privacy.controlTitle')}</h2>
+      <div class="mt-3">${list([['download', 'control1'], ['trash', 'control2'], ['doc', 'control3', { n: (app.profile.consentLog || []).length }]])}</div>
     </section>
 
     <section class="card card-soft mt-4">
-      <p class="small"><strong>Kontakti:</strong> ${escapeHtml(CONTACT_PLACEHOLDER)}</p>
-      <p class="card-note">Ky është një pilot shkollor për KosICT 15. Nuk është shërbim mjekësor dhe nuk zëvendëson ndihmën nga një njeri i besuar ose profesionist.</p>
+      <p class="small"><strong>${t('privacy.contactLabel')}</strong> ${escapeHtml(t('privacy.contact'))}</p>
+      <p class="card-note">${t('privacy.pilotNote')}</p>
     </section>`;
 }
 
 function termsBody() {
   return `<section class="card">
-    <h2 class="card-title">Kushtet e përdorimit — pilot</h2>
+    <h2 class="card-title">${t('privacy.termsTitle')}</h2>
     <ol class="terms mt-3">
-      <li>A JE MIRË? 2036 është një projekt pilot shkollor. Ofrohet "siç është", pa garanci funksionimi të pandërprerë.</li>
-      <li>Aplikacioni nuk jep diagnozë, këshillë mjekësore apo trajtim. Mesazhi i tij i vetëm është: diçka ndryshoi krahasuar me patternin tënd.</li>
-      <li>Llogaria është opsionale. Përgjigjesh për ruajtjen e fjalëkalimit të llogarisë dhe atij të sinkronizimit. Fjalëkalimi i sinkronizimit nuk mund të rikthehet nga askush.</li>
-      <li>Mos e përdor për të ruajtur të dhëna të personave të tjerë përtej emrit që u vë vetë te MY 5.</li>
-      <li>Mund ta fshish llogarinë në çdo moment; fshirja heq emailin, kopjen në cloud dhe pëlqimet.</li>
-      <li>Pilotit mund t'i ndryshojnë kushtet; versioni i ri kërkon pranim të ri para kopjes në cloud.</li>
-      <li>Kontakti: ${escapeHtml(CONTACT_PLACEHOLDER)}</li>
+      ${tList('privacy.terms').map(item => `<li>${escapeHtml(item)}</li>`).join('')}
+      <li>${escapeHtml(t('privacy.termsContact', { c: t('privacy.contact') }))}</li>
     </ol>
-    <p class="card-note">Versioni ${POLICY_VERSION}</p>
+    <p class="card-note">${t('privacy.version', { v: POLICY_VERSION })}</p>
   </section>`;
 }
 
 function helpBody() {
   return `
     <section class="card">
-      <h2 class="card-title">Pyetje të shpeshta</h2>
-      <details class="collapse mt-3"><summary>Pse më duhen 14 ditë para se të shoh ndryshime?</summary>
-        <div class="collapse-body muted small">Normalja jote llogaritet nga ditët e mëparshme. Me pak ditë, çdo krahasim do të ishte zhurmë.</div></details>
-      <details class="collapse"><summary>E harrova fjalëkalimin e sinkronizimit.</summary>
-        <div class="collapse-body muted small">Kopja në cloud nuk mund të hapet më. Të dhënat në pajisje janë të paprekura: fshij kopjen e vjetër te Llogaria dhe ngarko një të re me fjalëkalim të ri.</div></details>
-      <details class="collapse"><summary>Çfarë ndodh kur dy pajisje kanë vlera të ndryshme për të njëjtën datë?</summary>
-        <div class="collapse-body muted small">Qendra e sinkronizimit t'i tregon të dyja krah për krah dhe ti zgjedh. Asgjë nuk mbishkruhet në heshtje.</div></details>
-      <details class="collapse"><summary>A funksionon pa internet?</summary>
-        <div class="collapse-body muted small">Po. Pas hapjes së parë, aplikacioni ngarkohet offline. Vetëm llogaria dhe sinkronizimi kërkojnë internet.</div></details>
+      <h2 class="card-title">${t('privacy.faqTitle')}</h2>
+      ${tList('privacy.faq').map(([question, answer], index) => `<details class="collapse${index === 0 ? ' mt-3' : ''}"><summary>${escapeHtml(question)}</summary>
+        <div class="collapse-body muted small">${escapeHtml(answer)}</div></details>`).join('')}
     </section>
 
     <section class="card mt-4">
-      <h2 class="card-title">Ndryshimet</h2>
-      ${CHANGELOG.map(([version, date, items]) => `<div class="mt-3">
+      <h2 class="card-title">${t('privacy.changesTitle')}</h2>
+      ${CHANGELOG.map(([version, date, key]) => `<div class="mt-3">
         <p><strong>${version}</strong> <span class="muted small">· ${date}</span></p>
-        <ul class="changelog">${items.map(text => `<li>${escapeHtml(text)}</li>`).join('')}</ul>
+        <ul class="changelog">${tList(`privacy.changelog.${key}`).map(text => `<li>${escapeHtml(text)}</li>`).join('')}</ul>
       </div>`).join('')}
     </section>
 
     <section class="card mt-4">
-      <h2 class="card-title">Raporto një problem</h2>
-      <p class="warn mt-2">${icon('info', 14)} Mos përfshi shënime private ose të dhëna personale në raport.</p>
+      <h2 class="card-title">${t('privacy.reportTitle')}</h2>
+      <p class="warn mt-2">${icon('info', 14)} ${t('privacy.reportWarn')}</p>
       <div class="field mt-3">
-        <label for="report-text">Çfarë ndodhi? <span class="field-hint">hapat, çfarë prisje, çfarë pe</span></label>
+        <label for="report-text">${t('privacy.reportLabel')} <span class="field-hint">${t('privacy.reportHint')}</span></label>
         <textarea id="report-text" rows="4" maxlength="1000"></textarea>
       </div>
-      <button type="button" class="btn btn-primary mt-3" data-copy-report>${icon('copy', 16)} Kopjo raportin</button>
-      <p class="card-note">Raporti nuk dërgohet automatikisht. Përfshin vetëm tekstin tënd, versionin e aplikacionit dhe llojin e shfletuesit — asnjë check-in. Dërgoje te: ${escapeHtml(CONTACT_PLACEHOLDER)}</p>
+      <button type="button" class="btn btn-primary mt-3" data-copy-report>${icon('copy', 16)} ${t('privacy.copyReport')}</button>
+      <p class="card-note">${escapeHtml(t('privacy.reportNote', { c: t('privacy.contact') }))}</p>
     </section>`;
+}
+
+function wireSettings(container, app) {
+  container.querySelector('#ui-language').addEventListener('change', event => app.setLanguage(event.target.value));
+  const analytics = container.querySelector('#analytics-consent');
+  if (analytics) {
+    analytics.addEventListener('change', () => {
+      // Pëlqimi shënohet me datë; pa të asnjë ngjarje nuk dërgohet.
+      app.profile.settings.analytics = analytics.checked;
+      recordConsent(app.profile, 'analytics', analytics.checked);
+      setAnalyticsConsent(analytics.checked);
+      app.save();
+      toast(analytics.checked ? t('privacy.analyticsOn') : t('privacy.analyticsOff'), 'ok');
+    });
+  }
 }
 
 function wireHelp(container) {
   const button = container.querySelector('[data-copy-report]');
   button.addEventListener('click', async () => {
     const text = container.querySelector('#report-text').value.trim();
-    if (!text) { toast('Shkruaj së pari çfarë ndodhi', 'err'); return; }
-    const report = `A JE MIRË? ${APP_VERSION}\nShfletuesi: ${navigator.userAgent}\nEkrani: ${innerWidth}x${innerHeight}\n\n${text}`;
+    if (!text) { toast(t('privacy.writeFirst'), 'err'); return; }
+    const report = `A JE MIRË? ${APP_VERSION}\n${t('privacy.browser')}: ${navigator.userAgent}\n${t('privacy.screen')}: ${innerWidth}x${innerHeight}\n\n${text}`;
     const done = await copyText(report);
-    toast(done ? 'Raporti u kopjua' : 'Kopjimi nuk u lejua', done ? 'ok' : 'err');
+    toast(done ? t('privacy.copied') : t('privacy.copyBlocked'), done ? 'ok' : 'err');
   });
 }

@@ -2,56 +2,28 @@ import { round } from './stats.js';
 import {
   METRIC_LABELS, MIN_DAYS, somethingChanged, whatHelpsMe, normalReport, tagLabel
 } from './patterns.js';
+import { t, tList, fill } from './i18n/index.js';
+
+// Objekt me etiketa që lexohen nga përkthimet në çastin e përdorimit (Object.entries funksionon).
+const labels = (keys, prefix) => Object.defineProperties({}, Object.fromEntries(
+  keys.map(key => [key, { get: () => t(`${prefix}.${key}`), enumerable: true }])));
 
 // Aktivitetet që mund të propozohen për një hap të vogël social.
-export const CONNECT_ACTIVITIES = {
-  kafe:        'një kafe',
-  shetitje:    'një shëtitje',
-  telefonate:  'një telefonatë e shkurtër',
-  basketboll:  'basketboll',
-  mesim:       'mësim bashkë',
-  mesazh:      'një mesazh i shkurtër'
-};
+export const CONNECT_ACTIVITIES = labels(['kafe', 'shetitje', 'telefonate', 'basketboll', 'mesim', 'mesazh'], 'compose.act');
 
-export const TONES = {
-  casual: 'I rehatshëm',
-  warm:   'I ngrohtë',
-  direct: 'I drejtpërdrejtë',
-  short:  'Shumë i shkurtër'
-};
+export const TONES = labels(['casual', 'warm', 'direct', 'short'], 'compose.tone');
 
-const MESSAGE_TEMPLATES = {
-  casual: [
-    (name, what) => `Ç'kemi ${name}? A je i lirë për ${what} këtë javë?`,
-    (name, what) => `${name}, ke kohë për ${what} ndonjë ditë këto ditë?`,
-    (name, what) => `Hej ${name}, po mendoja për ${what}. A të bie mirë?`
-  ],
-  warm: [
-    (name, what) => `${name}, ka ca kohë pa u parë. A gjejmë kohë për ${what}?`,
-    (name, what) => `Përshëndetje ${name}. Do të më bënte mirë të flisnim pak — ndoshta ${what}?`,
-    (name, what) => `${name}, më ka marrë malli. ${cap(what)} këtë javë?`
-  ],
-  direct: [
-    (name, what) => `${name}, a ke kohë për ${what} këtë javë? Më thuaj cila ditë të përshtatet.`,
-    (name, what) => `${name}, po propozoj ${what}. A të bie mirë nesër ose pasnesër?`,
-    (name, what) => `${name}, dua të takohemi. ${cap(what)}, kur të kesh kohë?`
-  ],
-  short: [
-    (name, what) => `${name}, ${what}?`,
-    (name) => `${name}, a dalim këtë javë?`,
-    (name, what) => `${name}, ${what} nesër?`
-  ]
-};
 
 function cap(text) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 export function draftMessage(person, tone, activityKey, variant = 0) {
-  const templates = MESSAGE_TEMPLATES[tone] || MESSAGE_TEMPLATES.casual;
+  // Template-t janë tekst me {name}, {what} dhe {What}; gjuha është ajo e ndërfaqes.
+  const templates = tList(`compose.tpl.${TONES[tone] ? tone : 'casual'}`);
   const what = CONNECT_ACTIVITIES[activityKey] || CONNECT_ACTIVITIES.kafe;
-  const name = (person && person.name) || 'ti';
-  return templates[variant % templates.length](name, what);
+  const name = (person && person.name) || t('compose.you');
+  return fill(templates[variant % templates.length], { name, what, What: cap(what) });
 }
 
 // Sa ditë kanë kaluar nga data e fundit e kontaktit.
@@ -104,15 +76,15 @@ function pickActivity(person, helps) {
 function buildReason(person, socialDropped, today, helps) {
   const gap = daysSince(person.lastReached, today);
   if (socialDropped) {
-    return 'Lidhja sociale ka qenë nën patternin tënd të zakonshëm këtë javë.';
+    return t('compose.reasonSocial');
   }
   if (gap !== null && gap >= 10) {
-    return `Kanë kaluar ${gap} ditë nga hera e fundit që e shënove këtë kontakt.`;
+    return t('compose.reasonGap', { n: gap });
   }
   if (helps[0]) {
-    return `Në të dhënat e tua, ditët me "${tagLabel(helps[0].tag)}" kanë pasur ${METRIC_LABELS[helps[0].metric].toLowerCase()} më të lartë.`;
+    return t('compose.reasonHelp', { tag: tagLabel(helps[0].tag), metric: METRIC_LABELS[helps[0].metric].toLowerCase() });
   }
-  return 'Një hap i vogël, kur të kesh kohë. Pa detyrim.';
+  return t('compose.reasonDefault');
 }
 
 // ---------- reflektimi javor ----------
@@ -154,20 +126,20 @@ export function weeklyReflection(profile) {
 }
 
 function buildQuestion(flaggedMetrics) {
-  if (flaggedMetrics.includes('sleep')) return 'Çfarë e zhvendosi orën e gjumit këtë javë?';
-  if (flaggedMetrics.includes('social')) return 'Cila ditë e kësaj jave të dha më shumë kohë me të tjerët?';
-  if (flaggedMetrics.includes('load')) return 'Cila pjesë e ngarkesës mund të shtyhet për javën tjetër?';
-  if (flaggedMetrics.length > 0) return 'Cila ditë e kësaj jave ishte më ndryshe nga të tjerat?';
-  return 'Çfarë do të mbash njësoj edhe javën tjetër?';
+  if (flaggedMetrics.includes('sleep')) return t('compose.qSleep');
+  if (flaggedMetrics.includes('social')) return t('compose.qSocial');
+  if (flaggedMetrics.includes('load')) return t('compose.qLoad');
+  if (flaggedMetrics.length > 0) return t('compose.qAny');
+  return t('compose.qNone');
 }
 
 function buildStep(topHelp, flaggedMetrics, profile) {
   if (topHelp) {
     const lift = round(Math.abs(topHelp.lift), 1);
-    return `Provo "${tagLabel(topHelp.tag)}" një ditë më shumë javën e ardhshme. Deri tani, ditët me të kanë pasur ${METRIC_LABELS[topHelp.metric].toLowerCase()} mesatarisht ${lift} pikë ndryshe.`;
+    return t('compose.stepHelp', { tag: tagLabel(topHelp.tag), metric: METRIC_LABELS[topHelp.metric].toLowerCase(), lift });
   }
   if (flaggedMetrics.includes('social') && (profile.my5 || []).length > 0) {
-    return `Përgatit një mesazh të shkurtër te ${profile.my5[0].name}. Ti vendos nëse e dërgon.`;
+    return t('compose.stepSocial', { name: profile.my5[0].name });
   }
-  return 'Vazhdo check-in-in e përditshëm edhe disa ditë, që baseline-i të bëhet më i saktë.';
+  return t('compose.stepDefault');
 }

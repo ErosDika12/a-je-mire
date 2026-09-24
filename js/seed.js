@@ -1,5 +1,6 @@
 import { METRICS } from './patterns.js';
 import { toIso, PERSON_COLORS, MODEL_VERSION } from './storage.js';
+import { tList } from './i18n/index.js';
 
 // PROFIL SINTETIK. Të gjithë numrat këtu i prodhon ky fajll.
 // Asnjë e dhënë e një personi të vërtetë nuk përdoret askund në projekt.
@@ -16,23 +17,7 @@ const SPREAD          = { mood: 0.9, sleep: 0.7, energy: 0.9, social: 1.0, joy: 
 const BASELINE_ACTIVITIES = ['basketboll', 'shoket', 'mesim', 'muzike', 'shetitje', 'familja', 'lexim'];
 const RECENT_ACTIVITIES   = ['mesim', 'ekrani', 'provim', 'shtepi', 'muzike'];
 
-const BASELINE_NOTES = [
-  'Luajtëm basketboll pas mësimit.',
-  'Fola gjatë me shokun në telefon.',
-  'Mësova për provimin, pastaj dola pak.',
-  'Dreka me familjen, dita e qetë.',
-  'Fjeta herët dhe u zgjova para orës.',
-  'Stërvitje në mëngjes, mësim në mbrëmje.'
-];
-
-const RECENT_NOTES = [
-  'Shumë detyra, mbeta vonë zgjuar.',
-  'Nuk dola fare, vetëm ekran.',
-  'Provimi më zuri gjithë ditën.',
-  'Pak kohë me shokët këtë javë.',
-  'U zgjova vonë, dita filloi me nxitim.',
-  'Mbeta në shtëpi të mësoj deri vonë.'
-];
+// Shënimet dhe lidhjet e demos vijnë nga përkthimet (seed.*), në gjuhën aktive kur krijohet demoja.
 
 // Farë fikse, që demoja të japë saktësisht të njëjtat numra çdo herë që hapet.
 function makeRandom(seed) {
@@ -78,7 +63,7 @@ function makeCheckin(dayIndex, today, random) {
     checkin[metric] = makeValue(metric, targets[metric], SPREAD[metric], random);
   }
   checkin.activities = pickActivities(isRecent ? RECENT_ACTIVITIES : BASELINE_ACTIVITIES, random);
-  const notes = isRecent ? RECENT_NOTES : BASELINE_NOTES;
+  const notes = tList(isRecent ? 'seed.recentNotes' : 'seed.baselineNotes');
   checkin.note = notes[Math.floor(random() * notes.length)];
   return checkin;
 }
@@ -101,14 +86,15 @@ export function generateProfile(consent, today = new Date(), seed = 20360911) {
   for (let dayIndex = 0; dayIndex < TOTAL_DAYS; dayIndex++) {
     checkins.push(makeCheckin(dayIndex, today, random));
   }
+  const relations = tList('seed.relations');
   return {
     ...baseShape(consent),
     mode: 'demo',
     checkins,
     my5: [
-      { name: 'Arta', relation: 'kushërirë', color: PERSON_COLORS[1], lastReached: toIso(daysBefore(today, 14)), sharedActivity: 'kafe' },
-      { name: 'Bleroni', relation: 'shok klase', color: PERSON_COLORS[2], lastReached: toIso(daysBefore(today, 9)), sharedActivity: 'shetitje' },
-      { name: 'Dardani', relation: 'shok basketbolli', color: PERSON_COLORS[0], lastReached: toIso(daysBefore(today, 21)), sharedActivity: 'basketboll' }
+      { name: 'Arta', relation: relations[0], color: PERSON_COLORS[1], lastReached: toIso(daysBefore(today, 14)), sharedActivity: 'kafe' },
+      { name: 'Bleroni', relation: relations[1], color: PERSON_COLORS[2], lastReached: toIso(daysBefore(today, 9)), sharedActivity: 'shetitje' },
+      { name: 'Dardani', relation: relations[2], color: PERSON_COLORS[0], lastReached: toIso(daysBefore(today, 21)), sharedActivity: 'basketboll' }
     ],
     connections: [
       { date: toIso(daysBefore(today, 21)), personName: 'Dardani', activityKey: 'basketboll' },

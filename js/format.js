@@ -2,13 +2,15 @@
 // njësoj. Asnjë funksion këtu nuk kthen kurrë "NaN", "Infinity" ose "undefined":
 // kur vlera mungon, kthehet një vizë.
 
+import { t, tList } from './i18n/index.js';
+
 const MINUS = '−';
 const EMPTY = '—';
 
-const MONTHS = ['janar', 'shkurt', 'mars', 'prill', 'maj', 'qershor',
-  'korrik', 'gusht', 'shtator', 'tetor', 'nëntor', 'dhjetor'];
-const MONTHS_SHORT = ['jan', 'shk', 'mar', 'pri', 'maj', 'qer', 'kor', 'gus', 'sht', 'tet', 'nën', 'dhj'];
-const WEEKDAYS = ['e diel', 'e hënë', 'e martë', 'e mërkurë', 'e enjte', 'e premte', 'e shtunë'];
+// Emrat e muajve dhe ditëve vijnë nga përkthimet e gjuhës aktive.
+const MONTHS = () => tList('core.months');
+const MONTHS_SHORT = () => tList('core.monthsShort');
+const WEEKDAYS = () => tList('core.weekdays');
 
 function isNumber(value) {
   return typeof value === 'number' && Number.isFinite(value);
@@ -43,7 +45,7 @@ export function fmtValue(value) {
 export function fmtMetric(metric, value) {
   const text = fmtNum(value, 1);
   if (text === EMPTY) return EMPTY;
-  return metric === 'sleep' ? `${text} orë` : text;
+  return metric === 'sleep' ? `${text} ${t('core.hoursShort')}` : text;
 }
 
 // Shigjeta tregon vetëm drejtimin numerik; nën 1% quhet e qëndrueshme.
@@ -65,27 +67,27 @@ function parseIso(iso) {
 export function formatDateLong(iso) {
   const parts = parseIso(iso);
   if (!parts) return EMPTY;
-  return `${parts.day} ${MONTHS[parts.month - 1]} ${parts.year}`;
+  return `${parts.day} ${MONTHS()[parts.month - 1]} ${parts.year}`;
 }
 
 export function formatDateShort(iso) {
   const parts = parseIso(iso);
   if (!parts) return EMPTY;
-  return `${parts.day} ${MONTHS_SHORT[parts.month - 1]}`;
+  return `${parts.day} ${MONTHS_SHORT()[parts.month - 1]}`;
 }
 
 export function formatWeekday(iso) {
   const parts = parseIso(iso);
   if (!parts) return EMPTY;
   const weekday = new Date(Date.UTC(parts.year, parts.month - 1, parts.day)).getUTCDay();
-  return `${WEEKDAYS[weekday]}, ${formatDateLong(iso)}`;
+  return `${WEEKDAYS()[weekday]}, ${formatDateLong(iso)}`;
 }
 
 export function weekdayShort(iso) {
   const parts = parseIso(iso);
   if (!parts) return '';
   const weekday = new Date(Date.UTC(parts.year, parts.month - 1, parts.day)).getUTCDay();
-  return ['Di', 'Hë', 'Ma', 'Më', 'En', 'Pr', 'Sh'][weekday];
+  return tList('core.weekdaysShort')[weekday];
 }
 
 export function dayOfMonth(iso) {
@@ -98,7 +100,7 @@ export function formatRange(fromIso, toIso) {
   const to = parseIso(toIso);
   if (!from || !to) return EMPTY;
   if (from.year === to.year) {
-    return `${from.day} ${MONTHS[from.month - 1]} – ${formatDateLong(toIso)}`;
+    return `${from.day} ${MONTHS()[from.month - 1]} – ${formatDateLong(toIso)}`;
   }
   return `${formatDateLong(fromIso)} – ${formatDateLong(toIso)}`;
 }

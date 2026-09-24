@@ -4,14 +4,11 @@ import { METRIC_LABELS, MIN_DAYS, activityRanking, tagLabel } from '../patterns.
 import { weeklyReflection } from '../compose.js';
 import { noteKeywords } from '../nlp.js';
 import { emptyState, sectionHead } from '../components.js';
+import { t } from '../i18n/index.js';
 
 let filter = 'all';
 
-const FILTERS = {
-  all: 'Të gjitha',
-  frequent: 'Më të shpeshtat',
-  largest: 'Dallimi më i madh'
-};
+const FILTERS = { all: 'helps.fAll', frequent: 'helps.fFrequent', largest: 'helps.fLargest' };
 
 export function renderHelps(container, app) {
   const profile = app.profile;
@@ -19,13 +16,13 @@ export function renderHelps(container, app) {
 
   container.innerHTML = `
     <header class="page-head">
-      <span class="eyebrow">Aktivitetet dhe humori</span>
-      <h1 class="page-title mt-2">What Helps Me?</h1>
-      <p class="page-sub">Për çdo aktivitet: humori mesatar në ditët me të, minus humori mesatar në ditët pa të. Llogaritur vetëm nga ditët e tua.</p>
+      <span class="eyebrow">${t('helps.eyebrow')}</span>
+      <h1 class="page-title mt-2">${t('helps.title')}</h1>
+      <p class="page-sub">${t('helps.subtitle')}</p>
     </header>
     ${profile.experiment ? experimentCard(profile.experiment) : ''}
     <section class="card card-accent" aria-labelledby="rank-title">
-      ${sectionHead('Renditja', 'Dallimi në humor sipas aktivitetit', `Shfaqen vetëm aktivitetet me të paktën ${MIN_DAYS.tag} ditë me to dhe ${MIN_DAYS.tag} pa to.`, '', 'rank-title')}
+      ${sectionHead(t('helps.rankEyebrow'), t('helps.rankTitle'), t('helps.rankMeta', { n: MIN_DAYS.tag }), '', 'rank-title')}
       ${rankingBody(profile, ranking)}
     </section>
     ${reflectionSection(profile)}`;
@@ -35,20 +32,20 @@ export function renderHelps(container, app) {
 
 function rankingBody(profile, ranking) {
   if (profile.checkins.length < MIN_DAYS.helps) {
-    return emptyState('partial', 'Ende nuk ka të dhëna të mjaftueshme',
-      `Renditja shfaqet pasi të regjistrohen të paktën ${MIN_DAYS.helps} ditë me aktivitete. Deri tani: ${profile.checkins.length}.`,
-      { label: 'Bëj check-in', go: 'checkin' });
+    return emptyState('partial', t('helps.notEnough'),
+      t('helps.need', { n: MIN_DAYS.helps, have: profile.checkins.length }),
+      { label: t('helps.checkin'), go: 'checkin' });
   }
   if (ranking.length === 0) {
-    return emptyState('tags', 'Asnjë aktivitet me mjaft ditë',
-      `Çdo aktivitet duhet të shfaqet të paktën ${MIN_DAYS.tag} ditë me të dhe ${MIN_DAYS.tag} ditë pa të. Vazhdo t'i shënosh te check-in-i.`,
-      { label: 'Bëj check-in', go: 'checkin' });
+    return emptyState('tags', t('helps.noActivity'),
+      t('helps.noActivityText', { n: MIN_DAYS.tag }),
+      { label: t('helps.checkin'), go: 'checkin' });
   }
-  return `<div class="seg-control" role="group" aria-label="Rendit aktivitetet">
-      ${Object.entries(FILTERS).map(([key, label]) => `<button type="button" data-filter="${key}" aria-pressed="${key === filter}">${label}</button>`).join('')}
+  return `<div class="seg-control" role="group" aria-label="${t('helps.sortLabel')}">
+      ${Object.entries(FILTERS).map(([key, label]) => `<button type="button" data-filter="${key}" aria-pressed="${key === filter}">${t(label)}</button>`).join('')}
     </div>
     <div class="rank-list mt-4" id="rank-list" aria-live="polite">${rankRows(sorted(ranking), profile)}</div>
-    <p class="card-note">Ky është pattern në të dhënat e tua, jo shkak. Një aktivitet këtu nuk është trajtim as zgjidhje — tregon vetëm se si ishin numrat në ato ditë.</p>`;
+    <p class="card-note">${t('helps.rankNote')}</p>`;
 }
 
 function sorted(ranking) {
@@ -72,11 +69,11 @@ function rankRows(list, profile) {
         <span class="rank-name">${escapeHtml(name)}</span>
         <span class="rank-lift ${up ? 'is-up' : 'is-down'}">${fmtSigned(item.lift)}</span>
       </div>
-      <div class="diverge" role="img" aria-label="${escapeHtml(`${name}: dallim ${fmtSigned(item.lift)} në humor`)}"><i class="${up ? 'is-up' : 'is-down'}" style="${barStyle}"></i></div>
-      <div class="rank-meta"><span>${item.daysWith} ditë me të</span><span>${item.daysWithout} ditë pa të</span></div>
-      <p class="small muted mt-2">Në ditët me "${escapeHtml(name)}", humori mesatar ishte ${fmtNum(item.withMean)}; në ditët pa të, ${fmtNum(item.withoutMean)}.</p>
+      <div class="diverge" role="img" aria-label="${escapeHtml(t('helps.barLabel', { name, lift: fmtSigned(item.lift) }))}"><i class="${up ? 'is-up' : 'is-down'}" style="${barStyle}"></i></div>
+      <div class="rank-meta"><span>${t('helps.daysWith', { n: item.daysWith })}</span><span>${t('helps.daysWithout', { n: item.daysWithout })}</span></div>
+      <p class="small muted mt-2">${t('helps.rowText', { name: escapeHtml(name), with: fmtNum(item.withMean), without: fmtNum(item.withoutMean) })}</p>
       <button type="button" class="btn btn-sm mt-3${chosen ? ' is-done' : ''}" data-experiment="${escapeHtml(item.tag)}">
-        ${icon(chosen ? 'check' : 'spark', 14)} ${chosen ? 'Eksperimenti yt' : 'Zgjidhe si eksperiment për javën'}
+        ${icon(chosen ? 'check' : 'spark', 14)} ${chosen ? t('helps.yourExperiment') : t('helps.chooseExperiment')}
       </button>
     </div>`;
   }).join('');
@@ -86,21 +83,21 @@ function experimentCard(experiment) {
   return `<section class="card card-lav" style="margin-bottom:var(--s4)">
     <div class="card-head">
       <div>
-        <span class="eyebrow">Eksperimenti yt</span>
+        <span class="eyebrow">${t('helps.yourExperiment')}</span>
         <h2 class="card-title">${escapeHtml(tagLabel(experiment.tag))}</h2>
-        <p class="card-sub">Nisur më ${escapeHtml(formatDateLong(experiment.startedAt))} · matja që ndiqet: ${METRIC_LABELS.mood}</p>
+        <p class="card-sub">${t('helps.started', { date: escapeHtml(formatDateLong(experiment.startedAt)), metric: METRIC_LABELS.mood })}</p>
       </div>
-      <button type="button" class="btn btn-sm" data-clear-experiment>Hiqe</button>
+      <button type="button" class="btn btn-sm" data-clear-experiment>${t('helps.remove')}</button>
     </div>
-    <p class="muted small">Shëno këtë aktivitet te check-in-i kur e bën. Pas një jave numrat e tregojnë vetë nëse ndryshoi diçka.</p>
+    <p class="muted small">${t('helps.experimentHint')}</p>
   </section>`;
 }
 
 function reflectionSection(profile) {
   const reflection = weeklyReflection(profile);
   return `<section class="panel mt-4" aria-labelledby="reflect-title">
-    <span class="eyebrow">Seksion i veçantë · ndërtuar lokalisht</span>
-    <h2 class="card-title" id="reflect-title">Reflektimi javor dhe fjalët e shënimeve</h2>
+    <span class="eyebrow">${t('helps.reflectEyebrow')}</span>
+    <h2 class="card-title" id="reflect-title">${t('helps.reflectTitle')}</h2>
     <div class="g-12 mt-4">
       <div class="card span-7">${reflectionBody(reflection)}</div>
       <div class="card span-5">${keywordBody(profile)}</div>
@@ -110,46 +107,46 @@ function reflectionSection(profile) {
 
 function reflectionBody(reflection) {
   if (!reflection.enough) {
-    return emptyState('partial', 'Ende nuk ka të dhëna të mjaftueshme',
-      `Reflektimi javor shfaqet pasi të regjistrohen të paktën ${reflection.need} ditë. Deri tani: ${reflection.days}.`);
+    return emptyState('partial', t('helps.notEnough'),
+      t('helps.reflectNeed', { n: reflection.need, have: reflection.days }));
   }
-  const stable = reflection.stable.length ? reflection.stable.join(', ') : 'asnjë matje nuk qëndroi krejt e njëjtë';
+  const stable = reflection.stable.length ? reflection.stable.join(', ') : t('helps.noneStable');
   const moved = reflection.moved.length
     ? reflection.moved.map(item => `${item.label} ${item.down ? '↓' : '↑'} ${item.pct}%`).join(' · ')
-    : 'asnjë matje nuk kaloi pragun';
+    : t('helps.noneMoved');
   const help = reflection.topHelp
-    ? `${tagLabel(reflection.topHelp.tag)} (${reflection.topHelp.daysWith} ditë)`
-    : 'ende asnjë aktivitet me mjaft ditë';
-  return `<span class="eyebrow">Reflektimi javor</span>
+    ? t('helps.helpDays', { name: tagLabel(reflection.topHelp.tag), n: reflection.topHelp.daysWith })
+    : t('helps.noHelp');
+  return `<span class="eyebrow">${t('helps.weekly')}</span>
     <ul class="facts mt-3">
-      <li class="fact"><span class="fact-ic">${icon('check', 16)}</span><span><strong>Qëndroi afër normales:</strong> ${escapeHtml(stable)}.</span></li>
-      <li class="fact"><span class="fact-ic">${icon('shift', 16)}</span><span><strong>Kaloi pragun:</strong> ${escapeHtml(moved)}.</span></li>
-      <li class="fact"><span class="fact-ic">${icon('spark', 16)}</span><span><strong>U shfaq në ditë me numra më të lartë:</strong> ${escapeHtml(help)}.</span></li>
+      <li class="fact"><span class="fact-ic">${icon('check', 16)}</span><span><strong>${t('helps.stayed')}</strong> ${escapeHtml(stable)}.</span></li>
+      <li class="fact"><span class="fact-ic">${icon('shift', 16)}</span><span><strong>${t('helps.crossed')}</strong> ${escapeHtml(moved)}.</span></li>
+      <li class="fact"><span class="fact-ic">${icon('spark', 16)}</span><span><strong>${t('helps.higherDays')}</strong> ${escapeHtml(help)}.</span></li>
     </ul>
     <div class="divider"></div>
-    <span class="eyebrow">Pyetje për të menduar</span>
+    <span class="eyebrow">${t('helps.question')}</span>
     <p class="summary-sentence" style="font-size:var(--fs-md)">${escapeHtml(reflection.question)}</p>
-    <span class="eyebrow mt-4">Hap i vogël, opsional</span>
+    <span class="eyebrow mt-4">${t('helps.step')}</span>
     <p class="small muted mt-2">${escapeHtml(reflection.step)}</p>
-    <p class="card-note">Ndërtuar nga numrat e llogaritur dhe fraza të fiksuara në kod. Pa internet, pa API. E njëjta e dhënë jep gjithmonë të njëjtin tekst.</p>`;
+    <p class="card-note">${t('helps.builtNote')}</p>`;
 }
 
 function keywordBody(profile) {
   const keywords = noteKeywords(profile.checkins, profile.settings, 'mood');
   if (!keywords) {
-    return `<span class="eyebrow">Fjalët e shënimeve</span>` + emptyState('words', 'Ende nuk ka mjaft shënime',
-      `Krahasimi i fjalëve kërkon të paktën ${MIN_DAYS.tag} shënime në ditë mbi normalen dhe ${MIN_DAYS.tag} nën të.`);
+    return `<span class="eyebrow">${t('helps.words')}</span>` + emptyState('words', t('helps.wordsEmpty'),
+      t('helps.wordsNeed', { n: MIN_DAYS.tag }));
   }
   const list = items => (items.length
     ? items.map(item => `<span class="pill">${escapeHtml(item.word)} · ${item.count}</span>`).join(' ')
-    : '<span class="tiny">asnjë fjalë e veçantë</span>');
-  return `<span class="eyebrow">Fjalët e shënimeve</span>
-    <p class="small muted mt-2">Fjalët që shfaqen vetëm në njërin grup ditësh, sipas humorit krahasuar me normalen.</p>
-    <p class="small mt-4"><strong>Ditë mbi normalen</strong> · ${keywords.aboveDays}</p>
+    : `<span class="tiny">${t('helps.noWord')}</span>`);
+  return `<span class="eyebrow">${t('helps.words')}</span>
+    <p class="small muted mt-2">${t('helps.wordsHint')}</p>
+    <p class="small mt-4"><strong>${t('helps.above')}</strong> · ${keywords.aboveDays}</p>
     <div class="tag-wrap mt-2">${list(keywords.onlyAbove)}</div>
-    <p class="small mt-4"><strong>Ditë nën normalen</strong> · ${keywords.belowDays}</p>
+    <p class="small mt-4"><strong>${t('helps.below')}</strong> · ${keywords.belowDays}</p>
     <div class="tag-wrap mt-2">${list(keywords.onlyBelow)}</div>
-    <p class="card-note">Ky është pattern në të dhënat e tua, jo shkak. Fjalët numërohen lokalisht dhe nuk dërgohen askund.</p>`;
+    <p class="card-note">${t('helps.wordsNote')}</p>`;
 }
 
 function wire(container, app, ranking) {
@@ -187,6 +184,6 @@ function wireExperiments(container, app) {
 function setExperiment(app, tag) {
   app.profile.experiment = tag ? { tag, metric: 'mood', startedAt: app.today } : null;
   app.save();
-  toast(tag ? `"${tagLabel(tag)}" u zgjodh si eksperiment` : 'Eksperimenti u hoq', tag ? 'ok' : 'info');
+  toast(tag ? t('helps.chosen', { name: tagLabel(tag) }) : t('helps.cleared'), tag ? 'ok' : 'info');
   app.rerender();
 }

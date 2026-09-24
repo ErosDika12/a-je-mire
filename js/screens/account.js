@@ -12,9 +12,11 @@ import {
   listConsentRecords, addConsentRecord, deleteAccount,
   rememberPassphrase, currentPassphrase, forgetPassphrase
 } from '../cloud/sync.js';
+import { setSessionUser } from '../cloud/session.js';
+import { forgetProfile } from '../social.js';
+import { t } from '../i18n/index.js';
 
 const MIN_PASSWORD = 10;
-const METRIC_SHORT = { mood: 'Humori', sleep: 'Gjumi', energy: 'Energjia', social: 'Lidhja', joy: 'Gëzimi', load: 'Ngarkesa' };
 
 // Gjendja e ekranit mbahet në memorie, jo në disk.
 const state = {
@@ -40,6 +42,9 @@ export async function initAuth(app) {
   const client = getClient();
   client.auth.onAuthStateChange((event, session) => {
     state.user = session ? session.user : null;
+    // Ekranet e tjera (komuniteti, mentori...) lexojnë të njëjtin sesion.
+    setTimeout(() => setSessionUser(state.user), 0);
+    if (event === 'SIGNED_OUT') forgetProfile();
     if (event === 'PASSWORD_RECOVERY') state.recovery = true;
     if (event === 'SIGNED_OUT') { resetCloudState(); forgetPassphrase(); }
     // Supabase-i thërret këtë brenda vetes; rivizatimi shtyhet që të mos bllokojë.
@@ -47,6 +52,7 @@ export async function initAuth(app) {
   });
   const { data } = await client.auth.getSession();
   state.user = data.session ? data.session.user : null;
+  await setSessionUser(state.user);
   // Pas linkut të emailit, adresa pastrohet që kodi të mos mbetet në histori.
   if (location.search) history.replaceState(null, '', location.pathname + location.hash);
 }
@@ -67,12 +73,12 @@ export function renderAccount(container, app) {
 
   if (!cloudConfigured()) {
     container.innerHTML = `${head()}
-      <section class="card"><p class="muted small">${icon('info', 14)} Llogaritë nuk janë aktive në këtë version. Aplikacioni punon plotësisht pa to, vetëm në këtë pajisje.</p></section>`;
+      <section class="card"><p class="muted small">${icon('info', 14)} ${t('acct.notActive')}</p></section>`;
     return;
   }
 
   if (!state.ready) {
-    container.innerHTML = `${head()}<section class="card"><p class="status">${icon('refresh', 14)} Po lidhet…</p></section>`;
+    container.innerHTML = `${head()}<section class="card"><p class="status">${icon('refresh', 14)} ${t('acct.connecting')}</p></section>`;
     initAuth(app).then(redraw);
     return;
   }
@@ -106,7 +112,7 @@ async function loadServerState() {
     state.consents = await listConsentRecords();
     state.backupInfo = await fetchBackupInfo();
   } catch (error) {
-    state.message = 'Serveri nuk u arrit. Të dhënat lokale janë të paprekura.';
+    state.message = t('acct.serverUnreachable');
   }
 }
 
@@ -121,46 +127,46 @@ function hasTerms() {
 
 function head() {
   return `<header class="page-head">
-    <h1 class="page-title">Llogaria</h1>
-    <p class="page-sub">Opsionale. Shërben vetëm për një kopje rezervë të enkriptuar, që ta rikthesh në një pajisje tjetër.</p>
+    <h1 class="page-title">${t('acct.title')}</h1>
+    <p class="page-sub">${t('acct.subtitle')}</p>
   </header>`;
 }
 
 function guestIntro() {
   return `<section class="card card-soft">
     <ul class="facts">
-      <li class="fact"><span class="fact-ic">${icon('shield', 16)}</span><span>Pa llogari, gjithçka rri vetëm në këtë pajisje — si deri tani.</span></li>
-      <li class="fact"><span class="fact-ic">${icon('lock', 16)}</span><span>Me llogari, të dhënat enkriptohen <strong>në pajisjen tënde</strong> me një fjalëkalim sinkronizimi që e di vetëm ti. Serveri ruan vetëm tekstin e enkriptuar.</span></li>
-      <li class="fact"><span class="fact-ic">${icon('cloud', 16)}</span><span>Asgjë nuk ngarkohet automatikisht. Çdo ngarkim e bën ti, pasi sheh përmbledhjen.</span></li>
+      <li class="fact"><span class="fact-ic">${icon('shield', 16)}</span><span>${t('acct.guest1')}</span></li>
+      <li class="fact"><span class="fact-ic">${icon('lock', 16)}</span><span>${t('acct.guest2')}</span></li>
+      <li class="fact"><span class="fact-ic">${icon('cloud', 16)}</span><span>${t('acct.guest3')}</span></li>
     </ul>
   </section>`;
 }
 
 function authCard() {
-  const tabs = [['login', 'Hyr'], ['register', 'Krijo llogari'], ['reset', 'Harrova fjalëkalimin']];
+  const tabs = [['login', t('acct.tabLogin')], ['register', t('acct.tabRegister')], ['reset', t('acct.tabReset')]];
   const body = {
     login: `<form class="stack" data-form="login">
-        ${field('email', 'Email', 'email', 'email')}
-        ${field('password', 'Fjalëkalimi', 'password', 'current-password')}
-        <button type="submit" class="btn btn-primary">${icon('lock', 16)} Hyr</button>
+        ${field('email', t('acct.email'), 'email', 'email')}
+        ${field('password', t('acct.password'), 'password', 'current-password')}
+        <button type="submit" class="btn btn-primary">${icon('lock', 16)} ${t('acct.login')}</button>
       </form>`,
     register: `<form class="stack" data-form="register">
-        ${field('email', 'Email', 'email', 'email')}
-        ${field('password', `Fjalëkalimi <span class="field-hint">të paktën ${MIN_PASSWORD} shenja</span>`, 'password', 'new-password')}
-        ${field('password2', 'Përsërite fjalëkalimin', 'password', 'new-password')}
+        ${field('email', t('acct.email'), 'email', 'email')}
+        ${field('password', `${t('acct.password')} <span class="field-hint">${t('acct.minChars', { n: MIN_PASSWORD })}</span>`, 'password', 'new-password')}
+        ${field('password2', t('acct.repeatPassword'), 'password', 'new-password')}
         <label class="check-row"><input type="checkbox" name="terms" required>
-          <span>Kam lexuar dhe pranoj <a href="#/privacy" data-go="privacy">Privatësinë dhe Kushtet</a>.</span></label>
-        <button type="submit" class="btn btn-primary">${icon('check', 16)} Krijo llogarinë</button>
-        <p class="card-note">Do të marrësh një email verifikimi. Kërkojmë vetëm emailin — asnjë emër, telefon, adresë, datëlindje apo foto.</p>
+          <span>${t('acct.acceptPrefix')} <a href="#/privacy" data-go="privacy">${t('acct.privacyTerms')}</a>.</span></label>
+        <button type="submit" class="btn btn-primary">${icon('check', 16)} ${t('acct.createAccount')}</button>
+        <p class="card-note">${t('acct.registerNote')}</p>
       </form>`,
     reset: `<form class="stack" data-form="reset">
-        ${field('email', 'Email', 'email', 'email')}
-        <button type="submit" class="btn btn-primary">${icon('refresh', 16)} Dërgo linkun e rivendosjes</button>
-        <p class="card-note">Fjalëkalimi i llogarisë rivendoset me email. Fjalëkalimi i sinkronizimit <strong>nuk</strong> mund të rivendoset nga askush.</p>
+        ${field('email', t('acct.email'), 'email', 'email')}
+        <button type="submit" class="btn btn-primary">${icon('refresh', 16)} ${t('acct.sendReset')}</button>
+        <p class="card-note">${t('acct.resetNote')}</p>
       </form>`
   };
   return `<section class="card mt-4">
-    <div class="seg-control" role="group" aria-label="Zgjidh veprimin">
+    <div class="seg-control" role="group" aria-label="${t('acct.pickAction')}">
       ${tabs.map(([key, label]) => `<button type="button" data-view="${key}" aria-pressed="${state.view === key}">${label}</button>`).join('')}
     </div>
     <div class="mt-4">${body[state.view]}</div>
@@ -181,11 +187,11 @@ function messageLine() {
 
 function newPasswordCard() {
   return `<section class="card">
-    <h2 class="card-title">Vendos fjalëkalim të ri</h2>
+    <h2 class="card-title">${t('acct.newPassTitle')}</h2>
     <form class="stack mt-4" data-form="newpass">
-      ${field('password', `Fjalëkalimi i ri <span class="field-hint">të paktën ${MIN_PASSWORD} shenja</span>`, 'password', 'new-password')}
-      ${field('password2', 'Përsërite', 'password', 'new-password')}
-      <button type="submit" class="btn btn-primary">${icon('check', 16)} Ruaj</button>
+      ${field('password', `${t('acct.newPass')} <span class="field-hint">${t('acct.minChars', { n: MIN_PASSWORD })}</span>`, 'password', 'new-password')}
+      ${field('password2', t('acct.repeat'), 'password', 'new-password')}
+      <button type="submit" class="btn btn-primary">${icon('check', 16)} ${t('acct.save')}</button>
     </form>
     ${messageLine()}
   </section>`;
@@ -196,10 +202,10 @@ function accountCard() {
   return `<section class="card">
     <div class="row-between">
       <div>
-        <p class="small muted">Je i kyçur si</p>
+        <p class="small muted">${t('acct.signedInAs')}</p>
         <p><strong>${escapeHtml(state.user.email || '')}</strong></p>
       </div>
-      <span class="pill ${verified ? 'pill-accent' : 'pill-amber'}">${icon(verified ? 'check' : 'info', 13)} ${verified ? 'Email i verifikuar' : 'Pa verifikuar'}</span>
+      <span class="pill ${verified ? 'pill-accent' : 'pill-amber'}">${icon(verified ? 'check' : 'info', 13)} ${verified ? t('acct.verified') : t('acct.notVerified')}</span>
     </div>
     ${messageLine()}
   </section>`;
@@ -207,11 +213,11 @@ function accountCard() {
 
 function termsGate() {
   return `<section class="card mt-4">
-    <h2 class="card-title">Para kopjes rezervë</h2>
-    <p class="muted small mt-2">Duhet pranimi yt i veçantë për Kushtet dhe Privatësinë. Ruhet si shënim me datë, dhe mund ta shohësh këtu.</p>
+    <h2 class="card-title">${t('acct.beforeBackup')}</h2>
+    <p class="muted small mt-2">${t('acct.beforeBackupText')}</p>
     <label class="check-row mt-4"><input type="checkbox" id="accept-terms">
-      <span>Pranoj <a href="#/privacy" data-go="privacy">Privatësinë dhe Kushtet</a> (versioni 2026-09).</span></label>
-    <button type="button" class="btn btn-primary mt-4" data-accept-terms disabled>${icon('check', 16)} Vazhdo</button>
+      <span>${t('acct.acceptVersion')} <a href="#/privacy" data-go="privacy">${t('acct.privacyTerms')}</a> ${t('acct.versionSuffix')}</span></label>
+    <button type="button" class="btn btn-primary mt-4" data-accept-terms disabled>${icon('check', 16)} ${t('acct.continue')}</button>
   </section>`;
 }
 
@@ -222,9 +228,9 @@ function syncCentre(app) {
   const hasPass = Boolean(currentPassphrase());
 
   let cloudLine;
-  if (info === undefined) cloudLine = `${icon('refresh', 14)} Po kontrollohet…`;
-  else if (info === null) cloudLine = 'Asnjë kopje në cloud.';
-  else cloudLine = `Revizioni ${info.revision} · ${escapeHtml(formatStamp(info.updated_at))}${info.device_id === sync.deviceId ? ' · nga kjo pajisje' : ' · nga një pajisje tjetër'}`;
+  if (info === undefined) cloudLine = `${icon('refresh', 14)} ${t('acct.checking')}`;
+  else if (info === null) cloudLine = t('acct.noCloud');
+  else cloudLine = `${t('acct.revision', { n: info.revision })} · ${escapeHtml(formatStamp(info.updated_at))} · ${info.device_id === sync.deviceId ? t('acct.fromThis') : t('acct.fromOther')}`;
 
   const behind = info && sync.revision !== info.revision;
 
@@ -232,39 +238,39 @@ function syncCentre(app) {
     <div class="card-head">
       <span class="fact-ic">${icon('cloud', 20)}</span>
       <div>
-        <h2 class="card-title">Qendra e sinkronizimit</h2>
-        <p class="card-sub">Kjo pajisje është burimi kryesor. Cloud-i mban vetëm një kopje të enkriptuar.</p>
+        <h2 class="card-title">${t('acct.syncTitle')}</h2>
+        <p class="card-sub">${t('acct.syncHint')}</p>
       </div>
     </div>
 
     <dl>
-      <div class="data-row"><dt>Në këtë pajisje</dt><dd>${profile.checkins.length} ditë${profile.mode === 'demo' ? ' · profil sintetik demo' : ''}</dd></div>
-      <div class="data-row"><dt>Në cloud</dt><dd>${cloudLine}</dd></div>
-      <div class="data-row"><dt>Sinkronizimi i fundit</dt><dd>${sync.lastSyncedAt ? escapeHtml(formatStamp(sync.lastSyncedAt)) : 'asnjëherë'}</dd></div>
+      <div class="data-row"><dt>${t('acct.onDevice')}</dt><dd>${t('acct.onDeviceDays', { n: profile.checkins.length })}${profile.mode === 'demo' ? t('acct.demoSuffix') : ''}</dd></div>
+      <div class="data-row"><dt>${t('acct.inCloud')}</dt><dd>${cloudLine}</dd></div>
+      <div class="data-row"><dt>${t('acct.lastSync')}</dt><dd>${sync.lastSyncedAt ? escapeHtml(formatStamp(sync.lastSyncedAt)) : t('acct.never')}</dd></div>
     </dl>
-    ${behind ? `<p class="warn mt-3">${icon('info', 14)} Cloud-i ka një version që kjo pajisje nuk e ka parë ende. Sinkronizo për ta krahasuar.</p>` : ''}
+    ${behind ? `<p class="warn mt-3">${icon('info', 14)} ${t('acct.behind')}</p>` : ''}
 
     ${hasPass ? `
-      <p class="status mt-4">${icon('lock', 14)} Fjalëkalimi i sinkronizimit është aktiv vetëm për këtë seancë.
-        <button type="button" class="btn btn-sm" data-forget-pass>Harroje tani</button></p>
+      <p class="status mt-4">${icon('lock', 14)} ${t('acct.passActive')}
+        <button type="button" class="btn btn-sm" data-forget-pass>${t('acct.forgetNow')}</button></p>
       <div class="row mt-4">
-        ${info ? `<button type="button" class="btn btn-primary" data-sync ${state.busy ? 'disabled' : ''}>${icon('refresh', 16)} Sinkronizo tani</button>
-                  <button type="button" class="btn" data-restore ${state.busy ? 'disabled' : ''}>${icon('download', 16)} Rikthe nga cloud</button>`
-               : `<button type="button" class="btn btn-primary" data-first-upload ${state.busy ? 'disabled' : ''}>${icon('upload', 16)} Ngarko kopjen e parë</button>`}
+        ${info ? `<button type="button" class="btn btn-primary" data-sync ${state.busy ? 'disabled' : ''}>${icon('refresh', 16)} ${t('acct.syncNow')}</button>
+                  <button type="button" class="btn" data-restore ${state.busy ? 'disabled' : ''}>${icon('download', 16)} ${t('acct.restore')}</button>`
+               : `<button type="button" class="btn btn-primary" data-first-upload ${state.busy ? 'disabled' : ''}>${icon('upload', 16)} ${t('acct.firstUpload')}</button>`}
       </div>`
     : `
       <form class="stack mt-4" data-form="passphrase">
         <div class="field">
-          <label for="f-passphrase">Fjalëkalimi i sinkronizimit <span class="field-hint">të paktën ${MIN_PASSPHRASE} shenja, i ndryshëm nga ai i llogarisë</span></label>
+          <label for="f-passphrase">${t('acct.passphrase')} <span class="field-hint">${t('acct.passphraseHint', { n: MIN_PASSPHRASE })}</span></label>
           <input id="f-passphrase" name="passphrase" type="password" autocomplete="off" required minlength="${MIN_PASSPHRASE}" maxlength="200">
         </div>
         ${info ? '' : `<div class="field">
-          <label for="f-passphrase2">Përsërite</label>
+          <label for="f-passphrase2">${t('acct.repeat')}</label>
           <input id="f-passphrase2" name="passphrase2" type="password" autocomplete="off" required maxlength="200">
         </div>`}
-        <button type="submit" class="btn btn-primary">${icon('lock', 16)} Përdor për këtë seancë</button>
+        <button type="submit" class="btn btn-primary">${icon('lock', 16)} ${t('acct.useForSession')}</button>
       </form>
-      <p class="card-note">Ky fjalëkalim nuk ruhet askund dhe nuk dërgohet. Nëse e harron, kopja në cloud nuk mund të hapet më — as nga ne. Të dhënat në këtë pajisje mbeten.</p>`}
+      <p class="card-note">${t('acct.passphraseNote')}</p>`}
 
     ${state.pending ? conflictPanel(state.pending) : ''}
   </section>`;
@@ -272,30 +278,30 @@ function syncCentre(app) {
 
 function conflictPanel(pending) {
   return `<div class="card card-soft mt-4" id="conflicts">
-    <h3 class="card-title">${pending.conflicts.length} ${pending.conflicts.length === 1 ? 'ditë ndryshon' : 'ditë ndryshojnë'} mes pajisjes dhe cloud-it</h3>
-    <p class="muted small mt-2">Zgjidh cilin version të mbash për secilën datë. Asgjë nuk ndryshon para se të shtypësh "Apliko".</p>
+    <h3 class="card-title">${pending.conflicts.length === 1 ? t('acct.conflictsOne') : t('acct.conflictsMany', { n: pending.conflicts.length })}</h3>
+    <p class="muted small mt-2">${t('acct.conflictsHint')}</p>
     ${pending.conflicts.map(item => `
       <fieldset class="conflict mt-4">
         <legend><strong>${escapeHtml(formatDateLong(item.date))}</strong></legend>
         <div class="conflict-grid">
-          ${conflictOption(item, 'local', 'Kjo pajisje', item.local, pending.resolutions[item.date])}
-          ${conflictOption(item, 'incoming', 'Cloud', item.incoming, pending.resolutions[item.date])}
+          ${conflictOption(item, 'local', t('acct.thisDevice'), item.local, pending.resolutions[item.date])}
+          ${conflictOption(item, 'incoming', t('acct.cloud'), item.incoming, pending.resolutions[item.date])}
         </div>
       </fieldset>`).join('')}
     <div class="row mt-4">
-      <button type="button" class="btn btn-primary" data-apply-merge>${icon('check', 16)} Apliko dhe sinkronizo</button>
-      <button type="button" class="btn" data-cancel-merge>Anulo</button>
+      <button type="button" class="btn btn-primary" data-apply-merge>${icon('check', 16)} ${t('acct.applySync')}</button>
+      <button type="button" class="btn" data-cancel-merge>${t('acct.cancel')}</button>
     </div>
   </div>`;
 }
 
 function conflictOption(item, side, label, entry, chosen) {
   const values = METRICS.filter(metric => Number.isFinite(entry[metric]))
-    .map(metric => `${METRIC_SHORT[metric]} ${entry[metric]}`).join(' · ');
+    .map(metric => `${t(`metrics.${metric}`)} ${entry[metric]}`).join(' · ');
   return `<label class="conflict-option">
     <input type="radio" name="c-${item.date}" value="${side}" ${chosen === side ? 'checked' : ''} data-resolve="${item.date}">
     <span><strong>${label}</strong>
-      <span class="small muted" style="display:block">${escapeHtml(values || 'pa matje')}</span>
+      <span class="small muted" style="display:block">${escapeHtml(values || t('acct.noValues'))}</span>
       ${entry.note ? `<span class="small" style="display:block">“${escapeHtml(entry.note.slice(0, 80))}”</span>` : ''}
     </span>
   </label>`;
@@ -303,11 +309,11 @@ function conflictOption(item, side, label, entry, chosen) {
 
 function securityCard() {
   return `<section class="card mt-4">
-    <h2 class="card-title">Siguria</h2>
+    <h2 class="card-title">${t('acct.security')}</h2>
     <div class="row mt-4">
-      <button type="button" class="btn" data-change-pass>${icon('lock', 16)} Ndrysho fjalëkalimin</button>
-      <button type="button" class="btn" data-signout>${icon('logout', 16)} Dil</button>
-      <button type="button" class="btn" data-signout-all>${icon('logout', 16)} Dil nga të gjitha pajisjet</button>
+      <button type="button" class="btn" data-change-pass>${icon('lock', 16)} ${t('acct.changePass')}</button>
+      <button type="button" class="btn" data-signout>${icon('logout', 16)} ${t('acct.signOut')}</button>
+      <button type="button" class="btn" data-signout-all>${icon('logout', 16)} ${t('acct.signOutAll')}</button>
     </div>
     ${consentHistory()}
   </section>`;
@@ -315,27 +321,27 @@ function securityCard() {
 
 function consentHistory() {
   if (!state.consents || state.consents.length === 0) return '';
-  const names = { terms: 'Kushtet', privacy: 'Privatësia', cloud_backup: 'Kopja në cloud', local_storage: 'Ruajtja lokale' };
+  const known = ['terms', 'privacy', 'cloud_backup', 'local_storage'];
   return `<details class="collapse mt-4">
-    <summary>${icon('doc', 16)} Pëlqimet e ruajtura në llogari</summary>
+    <summary>${icon('doc', 16)} ${t('acct.consentsTitle')}</summary>
     <div class="collapse-body">
-      ${state.consents.map(item => `<div class="data-row"><dt>${escapeHtml(names[item.kind] || item.kind)} · v${escapeHtml(item.policy_version)}</dt>
-        <dd>${item.granted ? 'pranuar' : 'tërhequr'} · ${escapeHtml(formatStamp(item.created_at))}</dd></div>`).join('')}
+      ${state.consents.map(item => `<div class="data-row"><dt>${escapeHtml(known.includes(item.kind) ? t(`acct.consent.${item.kind}`) : item.kind)} · v${escapeHtml(item.policy_version)}</dt>
+        <dd>${item.granted ? t('acct.granted') : t('acct.withdrawn')} · ${escapeHtml(formatStamp(item.created_at))}</dd></div>`).join('')}
     </div>
   </details>`;
 }
 
 function deletionCard() {
   return `<section class="card mt-4" style="border-color:color-mix(in srgb, var(--signal) 35%, var(--border))">
-    <h2 class="card-title">Fshirjet</h2>
-    <p class="muted small mt-2">Tri veprime të ndara. Secila fshin vetëm atë që thotë.</p>
+    <h2 class="card-title">${t('acct.deletions')}</h2>
+    <p class="muted small mt-2">${t('acct.deletionsHint')}</p>
     <div class="stack mt-4">
-      <div class="row-between"><span class="small"><strong>Të dhënat lokale</strong> — vetëm në këtë pajisje. Llogaria dhe cloud-i mbeten.</span>
-        <button type="button" class="btn btn-danger btn-sm" data-del-local>${icon('trash', 15)} Fshij lokalet</button></div>
-      <div class="row-between"><span class="small"><strong>Kopja në cloud</strong> — teksti i enkriptuar në server. Pajisja dhe llogaria mbeten.</span>
-        <button type="button" class="btn btn-danger btn-sm" data-del-cloud ${state.backupInfo ? '' : 'disabled'}>${icon('trash', 15)} Fshij kopjen</button></div>
-      <div class="row-between"><span class="small"><strong>Llogaria</strong> — emaili, kopja në cloud dhe pëlqimet. Të dhënat në këtë pajisje mbeten.</span>
-        <button type="button" class="btn btn-danger btn-sm" data-del-account>${icon('trash', 15)} Fshij llogarinë</button></div>
+      <div class="row-between"><span class="small">${t('acct.delLocalLabel')}</span>
+        <button type="button" class="btn btn-danger btn-sm" data-del-local>${icon('trash', 15)} ${t('acct.delLocal')}</button></div>
+      <div class="row-between"><span class="small">${t('acct.delCloudLabel')}</span>
+        <button type="button" class="btn btn-danger btn-sm" data-del-cloud ${state.backupInfo ? '' : 'disabled'}>${icon('trash', 15)} ${t('acct.delCloud')}</button></div>
+      <div class="row-between"><span class="small">${t('acct.delAccountLabel')}</span>
+        <button type="button" class="btn btn-danger btn-sm" data-del-account>${icon('trash', 15)} ${t('acct.delAccount')}</button></div>
     </div>
   </section>`;
 }
@@ -350,14 +356,14 @@ function formatStamp(iso) {
 
 function friendlyError(error) {
   const text = String((error && error.message) || error || '');
-  if (/Invalid login credentials/i.test(text)) return 'Emaili ose fjalëkalimi nuk përputhen.';
-  if (/Email not confirmed/i.test(text)) return 'Emaili nuk është verifikuar ende. Kontrollo postën.';
-  if (/rate limit|too many/i.test(text)) return 'Shumë tentativa. Provo sërish pas pak.';
-  if (/already registered/i.test(text)) return 'Ky email ka tashmë llogari. Provo "Hyr".';
-  if (/weak|password/i.test(text)) return 'Fjalëkalimi nuk u pranua. Provo një më të gjatë.';
-  if (text === 'passphrase') return 'Fjalëkalimi i sinkronizimit nuk e hap këtë kopje.';
-  if (/fetch|network/i.test(text)) return 'Nuk ka lidhje me serverin. Të dhënat lokale janë të paprekura.';
-  return 'Diçka nuk shkoi. Të dhënat lokale janë të paprekura.';
+  if (/Invalid login credentials/i.test(text)) return t('acct.eCredentials');
+  if (/Email not confirmed/i.test(text)) return t('acct.eNotConfirmed');
+  if (/rate limit|too many/i.test(text)) return t('acct.eRate');
+  if (/already registered/i.test(text)) return t('acct.eRegistered');
+  if (/weak|password/i.test(text)) return t('acct.eWeak');
+  if (text === 'passphrase') return t('acct.ePassphrase');
+  if (/fetch|network/i.test(text)) return t('acct.eNetwork');
+  return t('acct.eGeneric');
 }
 
 async function run(task) {
@@ -390,23 +396,23 @@ function wireAuth(container) {
       run(async () => {
         const { error } = await client.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        toast('U kyçe', 'ok');
+        toast(t('acct.signedIn'), 'ok');
       });
     } else if (form.dataset.form === 'register') {
-      if (password.length < MIN_PASSWORD) { state.message = `Fjalëkalimi duhet të ketë të paktën ${MIN_PASSWORD} shenja.`; redraw(); return; }
-      if (password !== data.get('password2')) { state.message = 'Fjalëkalimet nuk përputhen.'; redraw(); return; }
+      if (password.length < MIN_PASSWORD) { state.message = t('acct.passwordMin', { n: MIN_PASSWORD }); redraw(); return; }
+      if (password !== data.get('password2')) { state.message = t('acct.passwordsDiffer'); redraw(); return; }
       run(async () => {
         const { error } = await client.auth.signUp({ email, password, options: { emailRedirectTo: redirectUrl() } });
         if (error) throw error;
         state.view = 'login';
-        state.message = 'Kontrollo emailin dhe kliko linkun e verifikimit. Pastaj hyr këtu.';
+        state.message = t('acct.checkEmail');
       });
     } else {
       run(async () => {
         const { error } = await client.auth.resetPasswordForEmail(email, { redirectTo: redirectUrl() });
         if (error) throw error;
         // I njëjti mesazh edhe kur emaili nuk ekziston, që të mos zbulohet kush ka llogari.
-        state.message = 'Nëse ky email ka llogari, do të marrë një link rivendosjeje.';
+        state.message = t('acct.resetSent');
       });
     }
   });
@@ -418,13 +424,13 @@ function wireNewPassword(container) {
     event.preventDefault();
     const data = new FormData(form);
     const password = String(data.get('password') || '');
-    if (password.length < MIN_PASSWORD) { state.message = `Të paktën ${MIN_PASSWORD} shenja.`; redraw(); return; }
-    if (password !== data.get('password2')) { state.message = 'Fjalëkalimet nuk përputhen.'; redraw(); return; }
+    if (password.length < MIN_PASSWORD) { state.message = t('acct.atLeast', { n: MIN_PASSWORD }); redraw(); return; }
+    if (password !== data.get('password2')) { state.message = t('acct.passwordsDiffer'); redraw(); return; }
     run(async () => {
       const { error } = await getClient().auth.updateUser({ password });
       if (error) throw error;
       state.recovery = false;
-      toast('Fjalëkalimi u ndryshua', 'ok');
+      toast(t('acct.passwordChanged'), 'ok');
     });
   });
 }
@@ -454,8 +460,8 @@ function wireSignedIn(container, app) {
       event.preventDefault();
       const data = new FormData(passForm);
       const value = String(data.get('passphrase') || '');
-      if (value.length < MIN_PASSPHRASE) { state.message = `Të paktën ${MIN_PASSPHRASE} shenja.`; redraw(); return; }
-      if (data.has('passphrase2') && value !== data.get('passphrase2')) { state.message = 'Fjalëkalimet e sinkronizimit nuk përputhen.'; redraw(); return; }
+      if (value.length < MIN_PASSPHRASE) { state.message = t('acct.atLeast', { n: MIN_PASSPHRASE }); redraw(); return; }
+      if (data.has('passphrase2') && value !== data.get('passphrase2')) { state.message = t('acct.passphrasesDiffer'); redraw(); return; }
       rememberPassphrase(value);
       state.message = null;
       redraw();
@@ -474,16 +480,13 @@ function wireSignedIn(container, app) {
   on('[data-cancel-merge]', () => { state.pending = null; redraw(); });
 
   on('[data-change-pass]', () => { state.recovery = true; redraw(); });
-  on('[data-signout]', () => run(async () => { await getClient().auth.signOut({ scope: 'local' }); toast('Dole nga llogaria'); }));
-  on('[data-signout-all]', () => confirmTyped('Dil nga të gjitha pajisjet',
-    'Çdo pajisje ku je i kyçur do të dalë. Të dhënat lokale mbeten kudo.', null,
-    () => run(async () => { await getClient().auth.signOut({ scope: 'global' }); toast('Dole nga të gjitha pajisjet'); })));
+  on('[data-signout]', () => run(async () => { await getClient().auth.signOut({ scope: 'local' }); toast(t('acct.signedOut')); }));
+  on('[data-signout-all]', () => confirmTyped(t('acct.signOutAll'), t('acct.signOutAllText'), null,
+    () => run(async () => { await getClient().auth.signOut({ scope: 'global' }); toast(t('acct.signedOutAll')); })));
 
-  on('[data-del-local]', () => confirmTyped('Fshij të dhënat lokale',
-    'Check-ins, MY 5 dhe lidhjet fshihen nga kjo pajisje. Llogaria dhe kopja në cloud mbeten.', null,
+  on('[data-del-local]', () => confirmTyped(t('acct.delLocalTitle'), t('acct.delLocalText'), null,
     () => run(async () => { await getClient().auth.signOut({ scope: 'local' }); app.deleteEverything(); })));
-  on('[data-del-cloud]', () => confirmTyped('Fshij kopjen në cloud',
-    'Teksti i enkriptuar fshihet nga serveri. Të dhënat në këtë pajisje mbeten.', null,
+  on('[data-del-cloud]', () => confirmTyped(t('acct.delCloudTitle'), t('acct.delCloudText'), null,
     () => run(async () => {
       await deleteCloudBackup();
       await addConsentRecord(state.user.id, 'cloud_backup', false);
@@ -491,16 +494,15 @@ function wireSignedIn(container, app) {
       if (app.profile.sync) { app.profile.sync.revision = null; app.profile.sync.lastSyncedAt = null; }
       app.save();
       state.backupInfo = null;
-      toast('Kopja në cloud u fshi', 'ok');
+      toast(t('acct.cloudDeleted'), 'ok');
     })));
-  on('[data-del-account]', () => confirmTyped('Fshij llogarinë',
-    'Fshihen emaili, kopja në cloud dhe pëlqimet. Nuk kthehet. Të dhënat në këtë pajisje mbeten.', 'FSHIJ',
+  on('[data-del-account]', () => confirmTyped(t('acct.delAccount'), t('acct.delAccountText'), t('acct.deleteWord'),
     () => run(async () => {
       await deleteAccount();
       await getClient().auth.signOut({ scope: 'local' });
       app.profile.sync = null;
       app.save();
-      toast('Llogaria u fshi', 'ok');
+      toast(t('acct.accountDeleted'), 'ok');
     })));
 }
 
@@ -508,11 +510,11 @@ function wireSignedIn(container, app) {
 function confirmTyped(title, body, word, onConfirm) {
   const panel = openModal(title, `
     <p class="muted small">${escapeHtml(body)}</p>
-    ${word ? `<div class="field mt-4"><label for="confirm-word">Shkruaj <strong>${word}</strong> për të vazhduar</label>
+    ${word ? `<div class="field mt-4"><label for="confirm-word">${t('acct.typeWord', { word: escapeHtml(word) })}</label>
       <input id="confirm-word" autocomplete="off"></div>` : ''}
     <div class="row mt-5" style="justify-content:flex-end">
-      <button type="button" class="btn" data-cancel>Anulo</button>
-      <button type="button" class="btn btn-danger" data-confirm ${word ? 'disabled' : ''}>Vazhdo</button>
+      <button type="button" class="btn" data-cancel>${t('acct.cancel')}</button>
+      <button type="button" class="btn btn-danger" data-confirm ${word ? 'disabled' : ''}>${t('acct.continue')}</button>
     </div>`);
   const confirm = panel.querySelector('[data-confirm]');
   if (word) {
@@ -528,18 +530,18 @@ function confirmTyped(title, body, word, onConfirm) {
 function confirmFirstUpload(app) {
   const profile = app.profile;
   const notes = profile.checkins.filter(entry => String(entry.note || '').trim() !== '').length;
-  const panel = openModal('Ngarko kopjen e parë', `
-    <p class="muted small">Këto do të enkriptohen në këtë pajisje dhe do të ngarkohen si një bllok i vetëm tekst i palexueshëm:</p>
+  const panel = openModal(t('acct.uploadTitle'), `
+    <p class="muted small">${t('acct.uploadIntro')}</p>
     <ul class="facts mt-3">
-      <li class="fact"><span class="fact-ic">${icon('calendar', 15)}</span><span>${profile.checkins.length} check-ins${notes ? `, nga të cilat ${notes} me shënim` : ''}</span></li>
-      <li class="fact"><span class="fact-ic">${icon('users', 15)}</span><span>${(profile.my5 || []).length} persona në MY 5</span></li>
-      <li class="fact"><span class="fact-ic">${icon('coffee', 15)}</span><span>${(profile.connections || []).length} lidhje të shënuara</span></li>
+      <li class="fact"><span class="fact-ic">${icon('calendar', 15)}</span><span>${t('acct.uploadCheckins', { n: profile.checkins.length })}${notes ? t('acct.uploadNotes', { n: notes }) : ''}</span></li>
+      <li class="fact"><span class="fact-ic">${icon('users', 15)}</span><span>${t('acct.uploadMy5', { n: (profile.my5 || []).length })}</span></li>
+      <li class="fact"><span class="fact-ic">${icon('coffee', 15)}</span><span>${t('acct.uploadConnections', { n: (profile.connections || []).length })}</span></li>
     </ul>
-    ${profile.mode === 'demo' ? `<p class="warn mt-3">${icon('info', 14)} Ky është profili sintetik demo, jo të dhëna të tua.</p>` : ''}
-    <p class="muted small mt-3">Serveri nuk sheh dot përmbajtjen. Mund ta fshish kopjen kur të duash.</p>
+    ${profile.mode === 'demo' ? `<p class="warn mt-3">${icon('info', 14)} ${t('acct.uploadDemo')}</p>` : ''}
+    <p class="muted small mt-3">${t('acct.uploadServer')}</p>
     <div class="row mt-5" style="justify-content:flex-end">
-      <button type="button" class="btn" data-cancel>Anulo</button>
-      <button type="button" class="btn btn-primary" data-confirm>${icon('upload', 15)} Enkripto dhe ngarko</button>
+      <button type="button" class="btn" data-cancel>${t('acct.cancel')}</button>
+      <button type="button" class="btn btn-primary" data-confirm>${icon('upload', 15)} ${t('acct.uploadButton')}</button>
     </div>`);
   panel.querySelector('[data-cancel]').addEventListener('click', closeLayer);
   panel.querySelector('[data-confirm]').addEventListener('click', () => {
@@ -549,7 +551,7 @@ function confirmFirstUpload(app) {
       recordConsent(app.profile, 'cloud_backup', true);
       await pushProfile(app, null);
       state.consents = await listConsentRecords();
-      toast('Kopja e enkriptuar u ngarkua', 'ok');
+      toast(t('acct.uploaded'), 'ok');
     });
   });
 }
@@ -559,7 +561,7 @@ async function pushProfile(app, expectedRevision) {
   const result = await uploadBackup(app.profile, currentPassphrase(), expectedRevision);
   if (result.conflict) {
     // Një pajisje tjetër ruajti ndërkohë. Nuk mbishkruajmë: rinisim krahasimin.
-    state.message = 'Një pajisje tjetër ruajti ndërkohë. U krahasua sërish.';
+    state.message = t('acct.otherDevice');
     await syncNow(app);
     return;
   }
@@ -582,7 +584,7 @@ async function syncNow(app) {
   const { profile, summary } = mergeProfiles(app.profile, remote.profile);
   finishMerge(app, profile, remote.revision);
   await pushProfile(app, remote.revision);
-  toast(summary.added ? `${summary.added} ditë u shtuan nga cloud` : 'Gjithçka është e sinkronizuar', 'ok');
+  toast(summary.added ? t('acct.addedFromCloud', { n: summary.added }) : t('acct.allSynced'), 'ok');
 }
 
 async function applyMerge(app) {
@@ -591,7 +593,7 @@ async function applyMerge(app) {
   state.pending = null;
   finishMerge(app, profile, remote.revision);
   await pushProfile(app, remote.revision);
-  toast('Konfliktet u zgjidhën dhe u sinkronizua', 'ok');
+  toast(t('acct.resolved'), 'ok');
 }
 
 function finishMerge(app, profile, revision) {
@@ -601,8 +603,7 @@ function finishMerge(app, profile, revision) {
 }
 
 function confirmRestore(app) {
-  confirmTyped('Rikthe nga cloud',
-    'Të dhënat në këtë pajisje zëvendësohen me kopjen nga cloud. Para kësaj ruhet automatikisht një kopje lokale që mund ta rikthesh te "Të dhënat e mia".',
+  confirmTyped(t('acct.restore'), t('acct.restoreText'),
     null,
     () => run(async () => {
       const remote = await downloadBackup(currentPassphrase());
@@ -612,6 +613,6 @@ function confirmRestore(app) {
       remote.profile.sync = { ...sync, revision: remote.revision, lastSyncedAt: new Date().toISOString() };
       remote.profile.consent = { ...app.profile.consent };
       app.replaceProfile(remote.profile);
-      toast('U rikthye nga cloud', 'ok');
+      toast(t('acct.restored'), 'ok');
     }));
 }
