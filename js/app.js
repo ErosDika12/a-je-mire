@@ -298,8 +298,11 @@ function boot() {
 
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator) || location.hostname === 'localhost' && !import.meta.env.PROD) return;
+  // Rifreskimi bëhet vetëm kur përdoruesi e kërkon. Në vizitën e parë worker-i merr kontrollin
+  // pa rifreskuar faqen — përndryshe humbet fjalëkalimi i sinkronizimit dhe çdo formë e plotësuar.
+  let userAskedToRefresh = false;
   navigator.serviceWorker.register('/sw.js').then(registration => {
-    const offer = worker => showUpdateNotice(() => worker.postMessage('SKIP_WAITING'));
+    const offer = worker => showUpdateNotice(() => { userAskedToRefresh = true; worker.postMessage('SKIP_WAITING'); });
     if (registration.waiting && navigator.serviceWorker.controller) offer(registration.waiting);
     registration.addEventListener('updatefound', () => {
       const worker = registration.installing;
@@ -313,7 +316,7 @@ function registerServiceWorker() {
 
   let reloading = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (reloading) return;
+    if (reloading || !userAskedToRefresh) return;
     reloading = true;
     location.reload();
   });

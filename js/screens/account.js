@@ -100,10 +100,8 @@ export function renderAccount(container, app) {
 }
 
 async function loadServerState() {
-  try {
-    // Rreshti i profilit krijohet në hyrjen e parë; nëse ekziston, gabimi i dyfishimit injorohet.
-    await getClient().from('profiles').insert({ id: state.user.id });
-  } catch (error) { /* ekziston */ }
+  // Rreshti i profilit krijohet në hyrjen e parë; "ignoreDuplicates" e bën këtë pa gabim kur ekziston.
+  await getClient().from('profiles').upsert({ id: state.user.id }, { onConflict: 'id', ignoreDuplicates: true });
   try {
     state.consents = await listConsentRecords();
     state.backupInfo = await fetchBackupInfo();
