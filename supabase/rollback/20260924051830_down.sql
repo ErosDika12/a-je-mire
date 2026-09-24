@@ -1,0 +1,10 @@
+drop function if exists public.billing_list_subscriptions(integer);
+drop function if exists public.my_subscription();
+drop trigger if exists backup_versions_keep on public.encrypted_backups;
+drop function if exists public.backup_versions_keep();
+drop table if exists public.backup_versions;
+drop function if exists public.has_plus();
+drop function if exists public.has_plus_for(uuid);
+drop table if exists public.webhook_events;
+drop table if exists public.subscriptions;
+drop table if exists public.billing_customers;
