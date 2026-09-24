@@ -1,6 +1,7 @@
 import { loadProfile, saveProfile, clearAll, todayIso, recordConsent } from './storage.js';
 import { generateProfile, emptyProfile } from './seed.js';
-import { icon, applyTheme, nextTheme, themeIcon, themeLabel, toast, openSheet, closeLayer } from './ui.js';
+import { icon, applyTheme, themeIcon, themeLabel, themeButtonsHtml, toast, openSheet, openModal, closeLayer, confirmDialog, CUSTOM_FIELDS, DEFAULT_CUSTOM, normalizeCustomThemes, isCustomThemeId, customThemeKey, contrastRatio } from './ui.js';
+import { escapeHtml } from './format.js';
 import { startTour, stopTour, isTourActive, drawTourBar } from './tour.js';
 import { t, setLang, getLang, onLangChange, plural } from './i18n/index.js';
 import { isEnabled, onFlagsChange } from './flags.js';
@@ -106,15 +107,296 @@ function currentTheme() {
   return app.profile ? (app.profile.settings.theme || 'auto') : temporaryTheme;
 }
 
+function currentCustomThemes() {
+  return normalizeCustomThemes(app.profile && app.profile.settings);
+}
+
+function migrateCustomThemes() {
+  if (!app.profile || !app.profile.settings) return;
+  const list = normalizeCustomThemes(app.profile.settings);
+  if (!list.length) return;
+  if (!Array.isArray(app.profile.settings.customThemes)) {
+    app.profile.settings.customThemes = list;
+  }
+  if (app.profile.settings.theme === 'custom') {
+    app.profile.settings.theme = `custom:${list[0].id}`;
+    saveProfile(app.profile);
+  }
+}
+
+function colorsForTheme(theme) {
+  const list = currentCustomThemes();
+  const key = customThemeKey(theme);
+  if (!key) return null;
+  const found = list.find(item => item.id === key);
+  return found ? found.colors : (list[0] ? list[0].colors : DEFAULT_CUSTOM);
+}
+
+function paintTheme(theme) {
+  applyTheme(theme, colorsForTheme(theme));
+}
+
+function persistCustomThemes(list, activeId) {
+  if (!app.profile) return;
+  app.profile.settings.customThemes = list;
+  app.profile.settings.customTheme = activeId
+    ? (list.find(item => item.id === activeId) || {}).colors || app.profile.settings.customTheme
+    : app.profile.settings.customTheme;
+  if (activeId) app.profile.settings.theme = `custom:${activeId}`;
+  saveProfile(app.profile);
+}
+
 function setTheme(theme) {
   if (app.profile) {
     app.profile.settings.theme = theme;
+    if (isCustomThemeId(theme)) {
+      const colors = colorsForTheme(theme);
+      if (colors) app.profile.settings.customTheme = colors;
+    }
     saveProfile(app.profile);
   } else {
     temporaryTheme = theme;
   }
-  applyTheme(theme);
+  paintTheme(theme);
   refreshShell();
+}
+
+function markThemeChips(root) {
+  const active = currentTheme();
+  for (const button of (root || document).querySelectorAll('[data-theme-id]')) {
+    const on = button.dataset.themeId === active;
+    button.classList.toggle('is-active', on);
+    button.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+}
+
+function renderThemeChoices() {
+  const choices = document.getElementById('theme-choices');
+  if (!choices) return;
+  choices.innerHTML = themeButtonsHtml(currentCustomThemes());
+  markThemeChips(choices);
+}
+
+function closeThemePanel() {
+  const box = document.getElementById('theme-switcher');
+  const toggle = document.getElementById('theme-button');
+  if (box) box.classList.remove('is-open');
+  if (toggle) toggle.setAttribute('aria-expanded', 'false');
+  closeThemeMenu();
+}
+
+function closeThemeMenu() {
+  const menu = document.getElementById('theme-menu');
+  if (menu) menu.remove();
+}
+
+function openCustomMenu(anchor, id) {
+  closeThemeMenu();
+  const item = currentCustomThemes().find(theme => theme.id === id);
+  if (!item) return;
+  const menu = document.createElement('div');
+  menu.id = 'theme-menu';
+  menu.className = 'theme-menu';
+  menu.innerHTML = `
+    <button type="button" data-act="apply">${icon('check', 14)} ${t('core.themeApply')}</button>
+    <button type="button" data-act="edit">${icon('edit', 14)} ${t('core.themeEdit')}</button>
+    <button type="button" data-act="duplicate">${icon('copy', 14)} ${t('core.themeDuplicate')}</button>
+    <button type="button" class="is-danger" data-act="delete">${icon('trash', 14)} ${t('core.themeDelete')}</button>`;
+  const wrap = anchor.closest('.theme-custom-item') || anchor.parentElement;
+  wrap.appendChild(menu);
+  menu.addEventListener('click', event => {
+    const act = event.target.closest('[data-act]');
+    if (!act) return;
+    event.stopPropagation();
+    closeThemeMenu();
+    if (act.dataset.act === 'apply') setTheme(`custom:${id}`);
+    if (act.dataset.act === 'edit') openCustomEditor(id);
+    if (act.dataset.act === 'duplicate') duplicateCustomTheme(id);
+    if (act.dataset.act === 'delete') deleteCustomTheme(id);
+  });
+}
+
+function bindThemeChoices(root) {
+  root.addEventListener('click', event => {
+    const create = event.target.closest('[data-theme-create]');
+    if (create) {
+      event.stopPropagation();
+      closeThemePanel();
+      openCustomEditor();
+      return;
+    }
+    const menuBtn = event.target.closest('[data-custom-menu]');
+    if (menuBtn) {
+      event.stopPropagation();
+      const open = document.getElementById('theme-menu');
+      if (open && open.parentElement.contains(menuBtn)) closeThemeMenu();
+      else openCustomMenu(menuBtn, menuBtn.dataset.customMenu);
+      return;
+    }
+    const button = event.target.closest('[data-theme-id]');
+    if (!button) return;
+    const id = button.dataset.themeId;
+    setTheme(id);
+    closeThemePanel();
+    if (root.classList.contains('sheet') && !isCustomThemeId(id)) closeLayer();
+  });
+}
+
+function newCustomId() {
+  return 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function duplicateCustomTheme(id) {
+  const list = currentCustomThemes();
+  const source = list.find(item => item.id === id);
+  if (!source) return;
+  const copy = {
+    id: newCustomId(),
+    name: `${source.name} ${t('core.themeCopySuffix')}`.slice(0, 40),
+    colors: { ...source.colors }
+  };
+  const next = list.concat(copy);
+  persistCustomThemes(next, copy.id);
+  paintTheme(`custom:${copy.id}`);
+  refreshShell();
+  toast(t('core.themeCopied'), 'ok');
+}
+
+function deleteCustomTheme(id) {
+  const item = currentCustomThemes().find(theme => theme.id === id);
+  if (!item) return;
+  confirmDialog(t('core.themeDeleteTitle'), t('core.themeDeleteText', { name: item.name }), t('core.themeDelete'), () => {
+    const next = currentCustomThemes().filter(theme => theme.id !== id);
+    if (app.profile) {
+      app.profile.settings.customThemes = next;
+      if (customThemeKey(currentTheme()) === id) {
+        app.profile.settings.theme = 'light';
+        app.profile.settings.customTheme = next[0] ? next[0].colors : undefined;
+      }
+      saveProfile(app.profile);
+    }
+    paintTheme(currentTheme());
+    refreshShell();
+    toast(t('core.themeDeleted'));
+  });
+}
+
+function openCustomEditor(editId) {
+  const list = currentCustomThemes();
+  const existing = editId ? list.find(item => item.id === editId) : null;
+  const saved = { ...DEFAULT_CUSTOM, ...(existing ? existing.colors : {}) };
+  let draft = { ...saved };
+  let draftName = existing ? existing.name : '';
+  let committed = false;
+  applyTheme(existing ? `custom:${existing.id}` : 'custom', draft);
+
+  const fields = CUSTOM_FIELDS.map(field => `
+    <label class="theme-field">
+      <span>${escapeHtml(field.label)}</span>
+      <span class="theme-field-row">
+        <input type="color" data-custom="${field.key}" value="${saved[field.key]}">
+        <input type="text" data-custom-hex="${field.key}" value="${saved[field.key]}" maxlength="7" spellcheck="false">
+      </span>
+    </label>`).join('');
+
+  const panel = openModal(existing ? t('core.themeEditTitle') : t('core.themeCreate'), `
+    <label class="theme-field">
+      <span>${t('core.themeName')}</span>
+      <input type="text" id="custom-theme-name" maxlength="40" placeholder="${escapeHtml(t('core.themeNameHint'))}" value="${escapeHtml(draftName)}">
+    </label>
+    <div class="theme-preview mt-4">
+      <span>${t('core.themePreview')}</span>
+      <button type="button" class="btn btn-primary" tabindex="-1">${t('core.themeButton')}</button>
+    </div>
+    <div class="theme-fields">${fields}</div>
+    <p class="small mt-3" id="theme-contrast" role="status" aria-live="polite"></p>
+    <p class="muted small">${t('core.themeBackHint')}</p>
+    <div class="row mt-5" style="justify-content:flex-end">
+      <button type="button" class="btn" data-reset>${t('core.themeReset')}</button>
+      <button type="button" class="btn btn-primary" data-save>${t('core.themeSave')}</button>
+    </div>`);
+
+  // Paralajmërim i qartë kur ngjyrat e zgjedhura e bëjnë tekstin të vështirë për t'u lexuar (WCAG AA 4.5:1).
+  const showContrast = () => {
+    const pairs = [
+      [t('core.contrastText'), draft.text, draft.bg], [t('core.contrastCards'), draft.text, draft.surface],
+      [t('core.contrastButtons'), draft.buttonText, draft.button], [t('core.contrastAccent'), draft.accent, draft.surface]
+    ].map(([name, fg, bg]) => ({ name, value: contrastRatio(fg, bg) }));
+    const weak = pairs.filter(pair => pair.value < 4.5);
+    panel.querySelector('#theme-contrast').innerHTML = weak.length
+      ? `<span class="warn">${icon('info', 14)} ${escapeHtml(t('core.contrastWeak', { list: weak.map(pair => `${pair.name} ${pair.value.toFixed(1)}:1`).join(', ') }))}</span>`
+      : `${icon('check', 14)} ${escapeHtml(t('core.contrastOk'))}`;
+  };
+
+  const fill = palette => {
+    for (const field of CUSTOM_FIELDS) {
+      const color = panel.querySelector(`[data-custom="${field.key}"]`);
+      const hex = panel.querySelector(`[data-custom-hex="${field.key}"]`);
+      if (color) color.value = palette[field.key];
+      if (hex) hex.value = palette[field.key];
+    }
+  };
+
+  panel.addEventListener('input', event => {
+    if (event.target.id === 'custom-theme-name') {
+      draftName = event.target.value;
+      return;
+    }
+    const color = event.target.closest('[data-custom]');
+    const hex = event.target.closest('[data-custom-hex]');
+    if (color) {
+      draft[color.dataset.custom] = color.value;
+      const twin = panel.querySelector(`[data-custom-hex="${color.dataset.custom}"]`);
+      if (twin) twin.value = color.value;
+      applyTheme('custom', draft);
+      showContrast();
+    }
+    if (hex && /^#[0-9a-fA-F]{6}$/.test(hex.value)) {
+      draft[hex.dataset.customHex] = hex.value;
+      const twin = panel.querySelector(`[data-custom="${hex.dataset.customHex}"]`);
+      if (twin) twin.value = hex.value;
+      applyTheme('custom', draft);
+      showContrast();
+    }
+  });
+
+  panel.querySelector('[data-reset]').addEventListener('click', () => {
+    draft = { ...DEFAULT_CUSTOM };
+    fill(draft);
+    applyTheme('custom', draft);
+    showContrast();
+  });
+  showContrast();
+
+  panel.querySelector('[data-save]').addEventListener('click', () => {
+    const name = (draftName || '').trim() || (existing ? existing.name : t('core.themeCustom'));
+    const next = currentCustomThemes().slice();
+    let id = existing ? existing.id : newCustomId();
+    if (existing) {
+      const index = next.findIndex(item => item.id === id);
+      if (index !== -1) next[index] = { id, name: name.slice(0, 40), colors: { ...draft } };
+    } else {
+      next.push({ id, name: name.slice(0, 40), colors: { ...draft } });
+    }
+    committed = true;
+    persistCustomThemes(next, id);
+    paintTheme(`custom:${id}`);
+    closeLayer();
+    refreshShell();
+    toast(existing ? t('core.themeUpdated') : t('core.themeSaved'), 'ok');
+  });
+
+  const revert = () => {
+    if (!committed) paintTheme(currentTheme());
+    document.removeEventListener('keydown', onEscape);
+  };
+  const onEscape = event => {
+    if (event.key === 'Escape') revert();
+  };
+  panel.querySelector('[data-close]').addEventListener('click', revert);
+  const backdrop = document.querySelector('.sheet-backdrop');
+  if (backdrop) backdrop.addEventListener('click', revert);
+  document.addEventListener('keydown', onEscape);
 }
 
 // Gjuha ruhet me profilin (pas consent-it), jo në një çelës të veçantë.
@@ -167,7 +449,33 @@ function buildShell() {
   bottomnav.setAttribute('aria-label', t('shell.quickNav'));
   const skip = document.querySelector('a.sr-only[href="#screens"]');
   if (skip) skip.textContent = t('shell.skip');
+  document.getElementById('theme-choices').setAttribute('aria-label', t('core.themePick'));
+  renderThemeChoices();
   markActive();
+  bindShellOnce();
+}
+
+// Guaska rindërtohet kur ndryshojnë flamujt, sesioni ose gjuha; dëgjuesit lidhen vetëm një herë.
+let shellBound = false;
+function bindShellOnce() {
+  if (shellBound) return;
+  shellBound = true;
+  const choices = document.getElementById('theme-choices');
+  const toggle = document.getElementById('theme-button');
+  bindThemeChoices(choices);
+  toggle.addEventListener('click', event => {
+    event.stopPropagation();
+    const box = document.getElementById('theme-switcher');
+    const open = box.classList.toggle('is-open');
+    toggle.setAttribute('aria-expanded', String(open));
+    if (!open) closeThemeMenu();
+  });
+  document.addEventListener('click', event => {
+    const box = document.getElementById('theme-switcher');
+    if (box && !box.contains(event.target)) closeThemePanel();
+  });
+  document.getElementById('quick-checkin').addEventListener('click', () => goTo('checkin'));
+  document.getElementById('tour-button').addEventListener('click', () => startTour(app));
 }
 
 function openMoreSheet() {
@@ -178,7 +486,8 @@ function openMoreSheet() {
       <p class="nav-group">${t('nav.settings')}</p>
       <button type="button" class="nav-item" data-sheet-lang>${icon('auto')}<span>${getLang() === 'sq' ? 'English' : 'Shqip'}</span></button>
       <button type="button" class="nav-item" data-sheet-tour>${icon('play')}<span>${t('nav.tour')}</span></button>
-      <button type="button" class="nav-item" data-sheet-theme>${icon(themeIcon(currentTheme()))}<span>${themeLabel(currentTheme())}</span></button>
+      <p class="nav-group">${t('nav.theme')}</p>
+      <div class="theme-choices is-sheet">${themeButtonsHtml(currentCustomThemes())}</div>
     </div>`);
 
   for (const button of panel.querySelectorAll('[data-sheet-screen]')) {
@@ -186,7 +495,8 @@ function openMoreSheet() {
   }
   panel.querySelector('[data-sheet-lang]').addEventListener('click', () => { closeLayer(); setLanguage(getLang() === 'sq' ? 'en' : 'sq'); });
   panel.querySelector('[data-sheet-tour]').addEventListener('click', () => { closeLayer(); startTour(app); });
-  panel.querySelector('[data-sheet-theme]').addEventListener('click', () => { closeLayer(); setTheme(nextTheme(currentTheme())); });
+  markThemeChips(panel);
+  bindThemeChoices(panel);
 }
 
 function markActive() {
@@ -275,10 +585,13 @@ function refreshShell() {
   const badge = document.getElementById('mode-badge');
   const themeButton = document.getElementById('theme-button');
   if (themeButton) {
+    const customs = currentCustomThemes();
     themeButton.innerHTML = icon(themeIcon(currentTheme()));
-    themeButton.setAttribute('aria-label', `${t('nav.theme')}: ${themeLabel(currentTheme())}`);
-    themeButton.title = themeLabel(currentTheme());
+    themeButton.setAttribute('aria-label', `${t('nav.theme')}: ${themeLabel(currentTheme(), customs)}`);
+    themeButton.title = themeLabel(currentTheme(), customs);
   }
+  renderThemeChoices();
+  markThemeChips(document);
   if (!badge || !app.profile) return;
   const demo = app.profile.mode === 'demo';
   badge.innerHTML = `${icon(demo ? 'spark' : 'shield', 15)}
@@ -307,16 +620,20 @@ function acceptConsent(mode, aiChecked) {
 function replaceProfile(profile) {
   app.profile = profile;
   saveProfile(app.profile);
-  applyTheme(currentTheme());
+  paintTheme(currentTheme());
   refreshShell();
 }
 
 function resetToDemo() {
   const consent = { ...app.profile.consent };
   const theme = currentTheme();
+  const customThemes = currentCustomThemes();
+  const customTheme = colorsForTheme(theme);
   app.profile = generateProfile(consent);
   app.profile.settings.theme = theme;
   app.profile.settings.lang = getLang();
+  if (customThemes.length) app.profile.settings.customThemes = customThemes;
+  if (customTheme) app.profile.settings.customTheme = customTheme;
   saveProfile(app.profile);
   goTo('dashboard');
 }
@@ -324,9 +641,13 @@ function resetToDemo() {
 function resetToPrivate() {
   const consent = { ...app.profile.consent };
   const theme = currentTheme();
+  const customThemes = currentCustomThemes();
+  const customTheme = colorsForTheme(theme);
   app.profile = emptyProfile(consent);
   app.profile.settings.theme = theme;
   app.profile.settings.lang = getLang();
+  if (customThemes.length) app.profile.settings.customThemes = customThemes;
+  if (customTheme) app.profile.settings.customTheme = customTheme;
   saveProfile(app.profile);
   goTo('checkin');
 }
@@ -368,12 +689,10 @@ function boot() {
   const started = performance.now();
   if (app.profile && app.profile.settings.lang) setLang(app.profile.settings.lang);
   document.documentElement.lang = getLang();
+  migrateCustomThemes();
   document.getElementById('brand-mark').innerHTML = logoMark(34);
   buildShell();
-  applyTheme(currentTheme());
-  document.getElementById('theme-button').addEventListener('click', () => setTheme(nextTheme(currentTheme())));
-  document.getElementById('tour-button').addEventListener('click', () => startTour(app));
-  document.getElementById('quick-checkin').addEventListener('click', () => goTo('checkin'));
+  paintTheme(currentTheme());
 
   const hasConsent = app.profile !== null && app.profile.consent && app.profile.consent.store === true;
   setAuthPersistence(hasConsent);
@@ -460,7 +779,7 @@ function showUpdateNotice(registration, apply) {
 
 // Tema e sistemit mund të ndryshojë ndërsa faqja është e hapur.
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-  if (currentTheme() === 'auto') applyTheme('auto');
+  if (currentTheme() === 'auto') paintTheme('auto');
 });
 
 document.addEventListener('keydown', event => {

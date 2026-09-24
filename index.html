@@ -58,7 +58,10 @@
       <header class="topbar">
         <h1 class="topbar-title" id="page-title">Kryefaqja</h1>
         <div class="topbar-actions">
-          <button type="button" class="icon-btn" id="theme-button" aria-label="Ndërro temën"></button>
+          <div class="theme-switcher" id="theme-switcher">
+            <div class="theme-choices" id="theme-choices" role="group" aria-label="Zgjedh temën"></div>
+            <button type="button" class="icon-btn theme-toggle" id="theme-button" aria-label="Ndërro temën" aria-expanded="false" aria-controls="theme-choices"></button>
+          </div>
           <button type="button" class="btn btn-sm" id="quick-checkin">Check-in</button>
         </div>
       </header>
