@@ -309,7 +309,7 @@ for (const screen of ['community', 'network', 'challenges', 'mentor', 'notificat
   if (width > 376) overflow.push(`${screen}:${width}`);
 }
 check('375px: pa rrëshqitje horizontale në modulet e reja', overflow.length === 0, overflow.join(','));
-check('navigimi i poshtëm në celular', (await phone.page.$$('.bottomnav-item')).length === 5);
+check('navigimi i poshtëm në celular', (await phone.page.$$('.bottomnav-item')).length === 6);
 
 check('pa gabime JavaScript', errors.length === 0, errors.slice(0, 3).join(' | '));
 await browser.close();

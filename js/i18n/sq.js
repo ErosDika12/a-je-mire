@@ -8,16 +8,20 @@ export default {
     actions: 'Veprime', loading: 'Po ngarkohet…', loadMore: 'Shfaq më shumë'
   },
   nav: {
-    dashboard: 'Sot', mira: 'MIRA', checkin: 'Check-in', challenges: 'Sfidat', normal: 'My Normal', changed: 'Something Changed',
+    dashboard: 'Sot', mira: 'MIRA', week: 'My Week', constellation: 'Constellation', profile: 'Profili',
+    focus: 'Focus Space', toolkits: 'Mjete për situata', support: 'Kam nevojë për ndihmë', forum: 'Komuniteti pilot', demo60: 'Java në 60 sekonda',
+    group_main: 'Kryesore', group_insights: 'Insights',
+    short_community: 'Community', short_week: 'Java', short_constellation: 'Yjet', short_profile: 'Profili',
+    checkin: 'Check-in', challenges: 'Sfidat', normal: 'My Normal', changed: 'Something Changed',
     why: 'Why?', patterns: 'Patterns', helps: 'What Helps Me?', assistant: 'Asistenti', connect: 'Lidhjet',
-    community: 'Komuniteti', network: 'Rrjeti', mentor: 'Mentori', data: 'Të dhënat e mia', account: 'Llogaria',
+    community: 'Community', network: 'Rrjeti', mentor: 'Mentori', data: 'Të dhënat e mia', account: 'Llogaria',
     notifications: 'Njoftimet', subscription: 'Plus', privacy: 'Privatësia', admin: 'Administrimi',
-    group_you: 'Ti', group_patterns: 'Patternat', group_people: 'Njerëzit', group_privacy: 'Privatësia', group_staff: 'Stafi',
+    group_you: 'Mjetet e mia', group_patterns: 'Patternat', group_people: 'Njerëzit', group_privacy: 'Privatësia', group_staff: 'Stafi',
     short_dashboard: 'Sot', short_mira: 'MIRA', short_normal: 'Normalja', short_patterns: 'Patterns', short_connect: 'Lidhjet',
     more: 'Më shumë', settings: 'Cilësimet', tour: 'Prezantim i udhëhequr', theme: 'Tema'
   },
   shell: {
-    mainNav: 'Navigimi kryesor', quickNav: 'Navigimi i shpejtë', skip: 'Kalo te përmbajtja',
+    mainNav: 'Navigimi kryesor', quickNav: 'Navigimi i shpejtë', skip: 'Kalo te përmbajtja', helpShort: 'Ndihmë',
     demoProfile: 'Profil sintetik demo', privateProfile: 'Profil privat', deviceOnly: 'vetëm në këtë pajisje',
     days: { one: '{n} ditë', other: '{n} ditë' },
     privateCreated: 'Profili privat u krijua', demoLoaded: 'Profili sintetik u ngarkua', deleted: 'Të gjitha të dhënat u fshinë',

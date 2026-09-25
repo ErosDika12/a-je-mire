@@ -8,16 +8,20 @@ export default {
     actions: 'Actions', loading: 'Loading…', loadMore: 'Show more'
   },
   nav: {
-    dashboard: 'Today', mira: 'MIRA', checkin: 'Check-in', challenges: 'Challenges', normal: 'My Normal', changed: 'Something Changed',
+    dashboard: 'Today', mira: 'MIRA', week: 'My Week', constellation: 'Constellation', profile: 'Profile',
+    focus: 'Focus Space', toolkits: 'Situation toolkits', support: 'I need support', forum: 'Pilot community', demo60: 'A week in 60 seconds',
+    group_main: 'Main', group_insights: 'Insights',
+    short_community: 'Community', short_week: 'Week', short_constellation: 'Stars', short_profile: 'Profile',
+    checkin: 'Check-in', challenges: 'Challenges', normal: 'My Normal', changed: 'Something Changed',
     why: 'Why?', patterns: 'Patterns', helps: 'What Helps Me?', assistant: 'Assistant', connect: 'My people',
     community: 'Community', network: 'Network', mentor: 'Mentor', data: 'My data', account: 'Account',
     notifications: 'Notifications', subscription: 'Plus', privacy: 'Privacy', admin: 'Administration',
-    group_you: 'You', group_patterns: 'Patterns', group_people: 'People', group_privacy: 'Privacy', group_staff: 'Staff',
+    group_you: 'My tools', group_patterns: 'Patterns', group_people: 'People', group_privacy: 'Privacy', group_staff: 'Staff',
     short_dashboard: 'Today', short_mira: 'MIRA', short_normal: 'Normal', short_patterns: 'Patterns', short_connect: 'People',
     more: 'More', settings: 'Settings', tour: 'Guided tour', theme: 'Theme'
   },
   shell: {
-    mainNav: 'Main navigation', quickNav: 'Quick navigation', skip: 'Skip to content',
+    mainNav: 'Main navigation', quickNav: 'Quick navigation', skip: 'Skip to content', helpShort: 'Help',
     demoProfile: 'Synthetic demo profile', privateProfile: 'Private profile', deviceOnly: 'on this device only',
     days: { one: '{n} day', other: '{n} days' },
     privateCreated: 'Private profile created', demoLoaded: 'Synthetic profile loaded', deleted: 'All data deleted',

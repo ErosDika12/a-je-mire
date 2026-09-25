@@ -18,12 +18,26 @@ import privacy from './privacy.js';
 import consent from './consent.js';
 import seed from './seed.js';
 import mira from './mira.js';
+import today from './today.js';
+import focus from './focus.js';
+import fric from './fric.js';
+import prof from './prof.js';
+import coach from './coach.js';
+import mmode from './mmode.js';
+import tool from './tool.js';
+import sup from './sup.js';
+import stars from './stars.js';
+import week from './week.js';
+import cm from './cm.js';
+import d60 from './d60.js';
+import seed3 from './seed3.js';
 
-const SCREENS = { core, dash, checkin, normal, changed, why, pat, helps, my5, compose, kafe, wall, comp, data, acct, privacy, consent, seed, mira };
+const SCREENS = { core, dash, checkin, normal, changed, why, pat, helps, my5, compose, kafe, wall, comp, data, acct, privacy, consent, seed, mira, today, focus, fric, prof, coach, mmode, tool, sup, stars, week, cm, d60, seed3 };
 
 function pick(lang) {
-  return Object.fromEntries(Object.entries(SCREENS).map(([name, pair]) => [name, pair[lang]]));
+  return Object.fromEntries(Object.entries(SCREENS).map(([name, pair]) => [name, pair[lang] || {}]));
 }
 
 export const screensSq = pick('sq');
 export const screensEn = pick('en');
+export const screensDe = pick('de');

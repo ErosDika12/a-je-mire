@@ -30,7 +30,9 @@ export function renderConsent(container, app) {
   }
 
   // Gjuha ndërrohet vetëm në memorie: para pëlqimit nuk shkruhet asgjë në pajisje.
-  container.querySelector('[data-consent-lang]').addEventListener('click', () => setLang(getLang() === 'sq' ? 'en' : 'sq'));
+  for (const button of container.querySelectorAll('[data-consent-lang]')) {
+    button.addEventListener('click', () => setLang(button.dataset.consentLang));
+  }
 }
 
 function factList(icons, key) {
@@ -40,7 +42,6 @@ function factList(icons, key) {
 }
 
 function markup() {
-  const other = getLang() === 'sq' ? 'en' : 'sq';
   return `<div class="consent-page">
     <div class="consent-card">
       <div class="consent-hero texture">
@@ -53,7 +54,9 @@ function markup() {
                 <div class="brand-sub">KosICT 15 · Kosova 2036</div>
               </div>
             </div>
-            <button type="button" class="btn btn-sm" data-consent-lang lang="${other}">${LANGUAGES[other].core.languageName}</button>
+            <div class="lang-row" role="group" aria-label="Gjuha · Language · Sprache">
+              ${Object.keys(LANGUAGES).map(code => `<button type="button" class="btn btn-sm" data-consent-lang="${code}" lang="${code}" aria-pressed="${code === getLang()}">${LANGUAGES[code].core.languageName}</button>`).join('')}
+            </div>
           </div>
           <h1 class="consent-title">${t('consent.title')}</h1>
           <p class="consent-lede">${t('consent.lede')}</p>

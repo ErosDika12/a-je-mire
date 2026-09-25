@@ -1,6 +1,12 @@
 import { METRICS, METRIC_RANGES } from './patterns.js';
 import { t } from './i18n/index.js';
 import { cleanPaths } from './mira.js';
+import { cleanDays, cleanFriction } from './life.js';
+import { cleanFocus } from './focus.js';
+import { cleanWeek } from './week-data.js';
+import { cleanCommunity } from './community-data.js';
+import { cleanStars } from './stars.js';
+import { deleteAllPhotos } from './photos.js';
 
 // E vetmja derë për të shkruar dhe lexuar në localStorage.
 // Gjithçka rri nën një çelës të vetëm.
@@ -62,6 +68,8 @@ export function clearAll() {
   } catch (error) {
     // asgjë për të pastruar
   }
+  // Fotot e My Week jetojnë në IndexedDB; fshihen bashkë me gjithçka tjetër.
+  deleteAllPhotos();
 }
 
 // Ruhet vetëm kur ka consent, njësoj si profili.
@@ -158,6 +166,13 @@ export function migrate(raw) {
   profile.consentLog = Array.isArray(profile.consentLog) ? profile.consentLog : [];
   // MIRA: rrugët e ruajtura, të pastruara (edhe nga fajllat e importuar).
   profile.mira = { paths: cleanPaths(profile.mira && profile.mira.paths) };
+  // v3: Sot, Focus, Friction Map, My Week, shënimet e yjeve dhe demoja e komunitetit.
+  profile.days = cleanDays(profile.days);
+  profile.focus = cleanFocus(profile.focus);
+  profile.friction = cleanFriction(profile.friction);
+  profile.week = cleanWeek(profile.week);
+  profile.stars = cleanStars(profile.stars);
+  profile.community = cleanCommunity(profile.community);
   // Gjendja e sinkronizimit: kurrë fjalëkalimi, vetëm ID e pajisjes dhe revizioni i fundit i njohur.
   profile.sync = profile.sync && typeof profile.sync === 'object' ? profile.sync : null;
   return profile;

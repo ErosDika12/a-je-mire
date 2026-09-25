@@ -7,15 +7,19 @@ import {
   SITUATIONS, FEELINGS, NEEDS, FOLLOW_UPS, situationOf, looksUrgent,
   summarize, buildPlan, controlIdeas, planAsText, cleanPaths
 } from '../mira.js';
+import { modeTabs, renderModeBody, wireMode } from './mira-modes.js';
 
 const fresh = () => ({
   step: 0, situation: null, text: '', feelings: [], ownFeelings: [], need: null,
   can: [], cant: [], person: '', variant: 0, plan: null, followUp: null, savedId: null
 });
 let state = fresh();
+let mode = 'path';
 
 export function renderMira(container, app) {
-  const body = state.step === 0 ? startView(app) : stepView(app);
+  const body = state.step === 0
+    ? modeTabs(mode) + (mode === 'path' ? startView(app) : renderModeBody(mode, app))
+    : stepView(app);
   container.innerHTML = `
     <header class="page-head mira-head">
       <div class="mira-id">
@@ -196,6 +200,13 @@ function wire(root, app) {
   }));
 
   on('[data-urgent]', () => openUrgent());
+  on('.mira-modes [data-mode]', el => { mode = el.dataset.mode; rerender(false); });
+  wireMode(mode, root, app, () => rerender(false), (next, text) => {
+    mode = next;
+    state = fresh();
+    state.text = text || '';
+    rerender();
+  });
   const text = root.querySelector('#mira-text');
   if (text) text.addEventListener('input', () => { state.text = text.value; });
 

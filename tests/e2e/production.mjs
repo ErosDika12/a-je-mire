@@ -7,7 +7,8 @@ const BASE = process.env.BASE || 'https://a-je-mire.vercel.app';
 const PASSWORD = process.env.E2E_PASSWORD;
 const SUPABASE = 'https://iqvuhhwsbwqaqmdxsmga.supabase.co';
 const KEY = 'sb_publishable_PPUrlFYy7jV5LJw9bGTJng_g_8EPNDS';
-const DISABLED_SCREENS = ['community', 'network', 'mentor', 'notifications', 'assistant', 'subscription'];
+// v3: forumi me server lëvizi te #/forum; #/community është tani demoja sintetike në pajisje.
+const DISABLED_SCREENS = ['forum', 'network', 'mentor', 'notifications', 'assistant', 'subscription'];
 let failed = 0;
 const check = (name, ok, extra = '') => { if (!ok) failed++; console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${extra ? '  · ' + extra : ''}`); };
 
@@ -47,7 +48,7 @@ const guest = await open(null);
 let screens = await nav(guest.page);
 check('pa llogari: modulet e fikura nuk shfaqen', DISABLED_SCREENS.every(id => !screens.includes(id)) && !screens.includes('admin'), screens.join(','));
 check('pa llogari: sfidat private shfaqen', screens.includes('challenges'));
-check('pa llogari: adresa #/community kthehet te Sot', (await tryOpen(guest.page, 'community')) === '#/dashboard');
+check('pa llogari: adresa #/forum kthehet te Sot', (await tryOpen(guest.page, 'forum')) === '#/dashboard');
 await guest.page.evaluate(() => window.AJM.app.goTo('challenges'));
 check('sfidat hapen', await guest.page.waitForSelector('#new-challenge').then(() => true, () => false));
 const analyticsToggle = await (async () => { await guest.page.evaluate(() => window.AJM.app.goTo('privacy')); await guest.page.waitForTimeout(300); return guest.page.$('#analytics-consent'); })();

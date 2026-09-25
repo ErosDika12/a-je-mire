@@ -21,6 +21,7 @@ import { renderData } from './screens/data.js';
 import { renderAccount, initAuth } from './screens/account.js';
 import { renderPrivacy } from './screens/privacy.js';
 import { renderMira } from './screens/mira.js';
+import { renderProfile } from './screens/profile.js';
 
 // Modulet e Fazës 2 ngarkohen vetëm kur hapen (dhe vetëm kur flamuri i lejon). Service worker-i
 // i ruan edhe këto pjesë, prandaj punojnë offline pas vizitës së parë.
@@ -33,6 +34,13 @@ const renderNotifications = lazy(() => import('./screens/notifications.js'), 're
 const renderAssistant = lazy(() => import('./screens/assistant.js'), 'renderAssistant');
 const renderSubscription = lazy(() => import('./screens/subscription.js'), 'renderSubscription');
 const renderAdmin = lazy(() => import('./screens/admin.js'), 'renderAdmin');
+const renderHub = lazy(() => import('./screens/hub.js'), 'renderHub');
+const renderWeek = lazy(() => import('./screens/week.js'), 'renderWeek');
+const renderConstellation = lazy(() => import('./screens/constellation.js'), 'renderConstellation');
+const renderFocus = lazy(() => import('./screens/focus.js'), 'renderFocus');
+const renderToolkits = lazy(() => import('./screens/toolkits.js'), 'renderToolkits');
+const renderSupport = lazy(() => import('./screens/support.js'), 'renderSupport');
+const renderDemo60 = lazy(() => import('./screens/demo60.js'), 'renderDemo60');
 import { isAuthRedirect, setAuthPersistence, cloudConfigured } from './cloud/client.js';
 import { forgetPassphrase } from './cloud/sync.js';
 import { ensureSession, onSessionChange, hasRole, currentUser } from './cloud/session.js';
@@ -43,18 +51,29 @@ import * as patterns from './patterns.js';
 // "flag": moduli shfaqet vetëm kur e lejojnë edhe tavani i build-it edhe serveri.
 // "roles": edhe roli në bazë (jo në metadata të klientit) duhet të përputhet.
 const SCREENS = [
-  { id: 'dashboard',     icon: 'today',    group: 'you',      render: renderDashboard, primary: true },
-  { id: 'mira',          icon: 'heart',    group: 'you',      render: renderMira,      primary: true },
+  // Navigimi kryesor (v3): gjashtë vende, të njëjtat në sidebar dhe në shiritin e poshtëm.
+  { id: 'dashboard',     icon: 'today',    group: 'main',     render: renderDashboard, primary: true },
+  { id: 'mira',          icon: 'heart',    group: 'main',     render: renderMira,      primary: true },
+  { id: 'community',     icon: 'users',    group: 'main',     render: renderHub,       primary: true },
+  { id: 'week',          icon: 'calendar', group: 'main',     render: renderWeek,      primary: true },
+  { id: 'constellation', icon: 'star',     group: 'main',     render: renderConstellation, primary: true },
+  { id: 'profile',       icon: 'auto',     group: 'main',     render: renderProfile,   primary: true },
+  // Mjetet e mia
   { id: 'checkin',       icon: 'check',    group: 'you',      render: renderCheckin },
+  { id: 'focus',         icon: 'play',     group: 'you',      render: renderFocus },
+  { id: 'toolkits',      icon: 'leaf',     group: 'you',      render: renderToolkits },
+  { id: 'support',       icon: 'shield',   group: 'you',      render: renderSupport },
+  { id: 'connect',       icon: 'connect',  group: 'you',      render: renderConnect },
   { id: 'challenges',    icon: 'spark',    group: 'you',      render: renderChallenges, flag: 'challenges' },
-  { id: 'normal',        icon: 'normal',   group: 'patterns', render: renderNormal },
-  { id: 'changed',       icon: 'shift',    group: 'patterns', render: renderChanged },
-  { id: 'why',           icon: 'why',      group: 'patterns', render: renderWhy },
-  { id: 'patterns',      icon: 'patterns', group: 'patterns', render: renderPatterns,  primary: true },
-  { id: 'helps',         icon: 'spark',    group: 'patterns', render: renderHelps },
-  { id: 'assistant',     icon: 'why',      group: 'patterns', render: renderAssistant, flag: 'ai' },
-  { id: 'connect',       icon: 'connect',  group: 'people',   render: renderConnect,   primary: true },
-  { id: 'community',     icon: 'users',    group: 'people',   render: renderCommunity, flag: 'community' },
+  // Insights: analizat e vjetra të patternave
+  { id: 'normal',        icon: 'normal',   group: 'insights', render: renderNormal },
+  { id: 'changed',       icon: 'shift',    group: 'insights', render: renderChanged },
+  { id: 'why',           icon: 'why',      group: 'insights', render: renderWhy },
+  { id: 'patterns',      icon: 'patterns', group: 'insights', render: renderPatterns },
+  { id: 'helps',         icon: 'spark',    group: 'insights', render: renderHelps },
+  { id: 'assistant',     icon: 'why',      group: 'insights', render: renderAssistant, flag: 'ai' },
+  // Moduli i vërtetë i komunitetit me server (i fikur në prodhim) dhe lidhjet online
+  { id: 'forum',         icon: 'users',    group: 'people',   render: renderCommunity, flag: 'community' },
   { id: 'network',       icon: 'connect',  group: 'people',   render: renderNetwork,   flag: ['connections', 'messages'] },
   { id: 'mentor',        icon: 'shield',   group: 'people',   render: renderMentor,    flag: 'mentor' },
   { id: 'data',          icon: 'database', group: 'privacy',  render: renderData },
@@ -62,7 +81,9 @@ const SCREENS = [
   { id: 'notifications', icon: 'info',     group: 'privacy',  render: renderNotifications, flag: 'notifications' },
   { id: 'subscription',  icon: 'lock',     group: 'privacy',  render: renderSubscription, flag: 'subscriptions' },
   { id: 'privacy',       icon: 'privacy',  group: 'privacy',  render: renderPrivacy },
-  { id: 'admin',         icon: 'shield',   group: 'staff',    render: renderAdmin, flag: 'admin', roles: ['moderator', 'admin', 'owner', 'billing'] }
+  { id: 'admin',         icon: 'shield',   group: 'staff',    render: renderAdmin, flag: 'admin', roles: ['moderator', 'admin', 'owner', 'billing'] },
+  // Nuk shfaqet në navigim; hapet nga butonat (prezantimi 60-sekondësh i demos).
+  { id: 'demo60',        icon: 'play',     group: 'you',      render: renderDemo60,    nav: false }
 ];
 
 // Adresat e vjetra (#/my5, #/kafe, #/wall) dhe butonat data-go vazhdojnë të punojnë.
@@ -100,6 +121,12 @@ const app = {
   refreshShell,
   setLanguage,
   rerender: () => goTo(current),
+  // Profili vizaton zgjedhjen e temës me të njëjtat funksione që përdorte koka e faqes.
+  mountThemePicker: root => {
+    root.innerHTML = themeButtonsHtml(currentCustomThemes());
+    markThemeChips(root);
+    bindThemeChoices(root);
+  },
   startTour: () => startTour(app)
 };
 
@@ -415,7 +442,7 @@ function setLanguage(lang) {
 function buildShell() {
   const sidebar = document.getElementById('sidebar');
   const bottomnav = document.getElementById('bottomnav');
-  const shown = SCREENS.filter(visible);
+  const shown = SCREENS.filter(screen => visible(screen) && screen.nav !== false);
 
   let lastGroup = '';
   sidebar.querySelector('.nav').innerHTML = shown.map(screen => {
@@ -427,10 +454,7 @@ function buildShell() {
   bottomnav.innerHTML = shown.filter(screen => screen.primary).map(screen =>
     `<button type="button" class="bottomnav-item" data-screen="${screen.id}">
       <i class="bn-dot" aria-hidden="true"></i>${icon(screen.icon, 20)}<span>${t(`nav.short_${screen.id}`)}</span>
-    </button>`).join('')
-    + `<button type="button" class="bottomnav-item" data-more>
-        <i class="bn-dot" aria-hidden="true"></i>${icon('more', 20)}<span>${t('nav.more')}</span>
-      </button>`;
+    </button>`).join('');
 
   // Seksionet krijohen për të gjitha ekranet, por vetëm të dukshmet mund të hapen (shih goTo).
   const host = document.getElementById('screens');
@@ -443,15 +467,14 @@ function buildShell() {
   for (const button of document.querySelectorAll('.nav [data-screen], .bottomnav [data-screen]')) {
     button.addEventListener('click', () => goTo(button.dataset.screen));
   }
-  document.querySelector('[data-more]').addEventListener('click', openMoreSheet);
   document.getElementById('tour-button').textContent = t('nav.tour');
   document.getElementById('quick-checkin').textContent = t('nav.checkin');
+  document.getElementById('quick-support').innerHTML = `${icon('shield', 15)}<span class="wide-only">${t('nav.support')}</span><span class="narrow-only">${t('shell.helpShort')}</span>`;
   // Tekstet statike të index.html ndjekin gjuhën aktive.
   sidebar.querySelector('.nav').setAttribute('aria-label', t('shell.mainNav'));
   bottomnav.setAttribute('aria-label', t('shell.quickNav'));
   const skip = document.querySelector('a.sr-only[href="#screens"]');
   if (skip) skip.textContent = t('shell.skip');
-  document.getElementById('theme-choices').setAttribute('aria-label', t('core.themePick'));
   renderThemeChoices();
   markActive();
   bindShellOnce();
@@ -462,43 +485,14 @@ let shellBound = false;
 function bindShellOnce() {
   if (shellBound) return;
   shellBound = true;
-  const choices = document.getElementById('theme-choices');
-  const toggle = document.getElementById('theme-button');
-  bindThemeChoices(choices);
-  toggle.addEventListener('click', event => {
-    event.stopPropagation();
-    const box = document.getElementById('theme-switcher');
-    const open = box.classList.toggle('is-open');
-    toggle.setAttribute('aria-expanded', String(open));
-    if (!open) closeThemeMenu();
-  });
+  // Zgjedhja e temës jeton te Profili (v3), jo më në kokën e faqes.
   document.addEventListener('click', event => {
-    const box = document.getElementById('theme-switcher');
-    if (box && !box.contains(event.target)) closeThemePanel();
+    const menu = document.getElementById('theme-menu');
+    if (menu && !menu.parentElement.contains(event.target)) closeThemeMenu();
   });
   document.getElementById('quick-checkin').addEventListener('click', () => goTo('checkin'));
+  document.getElementById('quick-support').addEventListener('click', () => goTo('support'));
   document.getElementById('tour-button').addEventListener('click', () => startTour(app));
-}
-
-function openMoreSheet() {
-  const extra = SCREENS.filter(screen => visible(screen) && !screen.primary);
-  const panel = openSheet(t('nav.more'), `
-    <div class="nav">
-      ${extra.map(screen => `<button type="button" class="nav-item" data-sheet-screen="${screen.id}">${icon(screen.icon)}<span>${label(screen)}</span></button>`).join('')}
-      <p class="nav-group">${t('nav.settings')}</p>
-      <button type="button" class="nav-item" data-sheet-lang>${icon('auto')}<span>${getLang() === 'sq' ? 'English' : 'Shqip'}</span></button>
-      <button type="button" class="nav-item" data-sheet-tour>${icon('play')}<span>${t('nav.tour')}</span></button>
-      <p class="nav-group">${t('nav.theme')}</p>
-      <div class="theme-choices is-sheet">${themeButtonsHtml(currentCustomThemes())}</div>
-    </div>`);
-
-  for (const button of panel.querySelectorAll('[data-sheet-screen]')) {
-    button.addEventListener('click', () => { closeLayer(); goTo(button.dataset.sheetScreen); });
-  }
-  panel.querySelector('[data-sheet-lang]').addEventListener('click', () => { closeLayer(); setLanguage(getLang() === 'sq' ? 'en' : 'sq'); });
-  panel.querySelector('[data-sheet-tour]').addEventListener('click', () => { closeLayer(); startTour(app); });
-  markThemeChips(panel);
-  bindThemeChoices(panel);
 }
 
 function markActive() {

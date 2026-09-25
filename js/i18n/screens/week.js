@@ -1,0 +1,117 @@
+// My Week
+export default {
+  sq: {
+    prev: 'Java e kaluar', next: 'Java tjetër', titleLabel: 'Titulli i javës', titlePlaceholder: 'Jepi javës një titull…',
+    private: 'Private. Vetëm në këtë pajisje.', immersive: 'Shiko historinë e javës', noConsent: 'Pa leje ruajtjeje, fotot dhe shënimet humbasin kur rifreskon faqen.',
+    photos: 'Fotot dhe kujtimet', upload: 'Shto foto', photoNote: 'Fotot mbeten në këtë pajisje. Aplikacioni nuk njeh fytyra dhe nuk nxjerr asgjë nga fotot.',
+    noPhotos: 'Ende pa foto këtë javë.', best: 'Momentet më të mira', bestEmpty: 'Shëno një foto si “moment i mirë” me yllin.',
+    people: 'Njerëzit që patën rëndësi', peopleEmpty: 'Njerëzit shfaqen kur i shënon te “Sot”, KAFE? ose te fotot.',
+    focus: 'Seancat e fokusit', focusCount: '{n} seanca, {done} të përfunduara', constellation: 'Yjësia e javës', snapshots: '{n} pamje të ruajtura për këtë javë',
+    notesTitle: 'Shënimet e javës',
+    f: { difficult: 'Çfarë ishte e vështirë', helped: 'Çfarë ndihmoi', completed: 'Diçka që e përfundova', learned: 'Diçka që mësova', intention: 'Qëllimi për javën tjetër' },
+    ph: { difficult: 'Mund ta lësh bosh…', helped: 'P.sh. një shëtitje, një bisedë…', completed: 'P.sh. projekti i shkollës', learned: 'Diçka e re për veten ose botën', intention: 'Një gjë e vogël për javën tjetër' },
+    storyTitle: 'MIRA Weekly Story', storyIntro: 'MIRA shkruan një përmbledhje vetëm nga faktet më poshtë — ato që i regjistrove vetë. Hiq çdo fakt që nuk do ta përfshish.',
+    storyFacts: 'Faktet që mund të përdoren', source: 'burimi: {source}', storyNoFacts: 'Ende nuk ka fakte për këtë javë. Shto foto, shënime ose përdor “Sot”.',
+    styleLabel: 'Stili i shkrimit', generate: 'Krijo historinë', regenerate: 'Krijoje sërish', editStory: 'Ndrysho tekstin',
+    storyEmpty: 'Nuk ka zgjedhur asnjë fakt, prandaj historia mbetet bosh.',
+    style: {
+      simple: 'E thjeshtë', reflective: 'Reflektuese', story: 'Si histori', social: 'E shkurtër',
+      simpleOpen: 'Kjo javë:', simpleClose: '',
+      reflectiveOpen: 'Duke parë prapa këtë javë:', reflectiveClose: 'Çfarë do të doje të merrje me vete në javën tjetër?',
+      storyOpen: 'Java kishte kapitujt e saj.', storyClose: 'Dhe java tjetër po fillon.',
+      socialOpen: 'Java ime:'
+    },
+    fact: {
+      focus: 'Bëre {n} seanca fokusi ({done} të përfunduara).', people: 'Kalove kohë ose fole me {names}.', best: 'Si momente të mira zgjodhe: {items}.',
+      done: 'Përfundove: {items}.', feelings: 'Fjalët që zgjodhe për ditët e tua: {words}.', mira: 'Me MIRA-n punove për: {topics}.',
+      pauses: 'Pauzat që bëre: {items}.', difficult: 'E vështirë ishte: {text}.', helped: 'Ndihmoi: {text}.', completed: 'E përfundove: {text}.',
+      learned: 'Mësove: {text}.', intention: 'Për javën tjetër: {text}.'
+    },
+    src: { focus: 'Focus Space', people: 'Sot, KAFE? dhe fotot', photos: 'fotot e tua', today: 'Sot', mira: 'MIRA', notes: 'shënimet e javës' },
+    exportTitle: 'Ndaj ose eksporto', exportIntro: 'Zgjidh vetëm seksionet që do. Asgjë nuk ndahet vetvetiu.',
+    ex: { title: 'Titulli', story: 'Historia', photos: 'Fotot', moments: 'Momentet', people: 'Njerëzit', notes: 'Shënimet', constellation: 'Yjësia' },
+    exportNote: 'Matjet private (humori, gjumi, etj.) nuk përfshihen kurrë.', exportCopy: 'Kopjo tekstin', exportFile: 'Shkarko si faqe',
+    exportEmpty: 'Nuk ka asgjë për të kopjuar në seksionet e zgjedhura.', exportCopied: 'U kopjua. Asgjë nuk u dërgua.',
+    timeline: 'Java, ditë pas dite', nextWeek: 'Për javën tjetër', closingDefault: 'Java tjetër fillon me një hap të vogël.',
+    photoAlt: 'Foto nga {date}', tagsPeople: 'Etiketat dhe njerëzit', synthetic: 'Sintetike', caption: 'Titulli i fotos', date: 'Dita',
+    tags: { school: 'Shkolla', friends: 'Shokët', family: 'Familja', sport: 'Sporti', music: 'Muzika', outside: 'Jashtë', food: 'Ushqimi', creative: 'Krijimtari', rest: 'Pushim', other: 'Tjetër' },
+    markBest: 'Moment i mirë', cover: 'Kopertinë', moveUp: 'Lëviz majtas', moveDown: 'Lëviz djathtas', deletePhoto: 'Fshij foton',
+    tooLarge: 'Fotoja është shumë e madhe (maks. 15 MB).', notImage: 'Ky fajll nuk është foto.', added: 'U shtuan {n} foto.', deleted: 'Fotoja u fshi.', notesSaved: 'Shënimet u ruajtën.'
+  },
+  en: {
+    prev: 'Previous week', next: 'Next week', titleLabel: 'Week title', titlePlaceholder: 'Give your week a title…',
+    private: 'Private. On this device only.', immersive: 'View the week’s story', noConsent: 'Without storage permission, photos and notes are lost when you refresh.',
+    photos: 'Photos and memories', upload: 'Add photos', photoNote: 'Photos stay on this device. The app doesn’t recognise faces and doesn’t infer anything from photos.',
+    noPhotos: 'No photos this week yet.', best: 'Best moments', bestEmpty: 'Mark a photo as a “best moment” with the star.',
+    people: 'People who mattered', peopleEmpty: 'People appear when you note them in “Today”, KAFE? or on photos.',
+    focus: 'Focus sessions', focusCount: '{n} sessions, {done} completed', constellation: 'This week’s constellation', snapshots: '{n} saved snapshots for this week',
+    notesTitle: 'Week notes',
+    f: { difficult: 'What was difficult', helped: 'What helped', completed: 'Something I completed', learned: 'Something I learned', intention: 'Intention for next week' },
+    ph: { difficult: 'You can leave it empty…', helped: 'E.g. a walk, a talk…', completed: 'E.g. the school project', learned: 'Something new about yourself or the world', intention: 'One small thing for next week' },
+    storyTitle: 'MIRA Weekly Story', storyIntro: 'MIRA writes a recap only from the facts below — the ones you recorded yourself. Remove any fact you don’t want included.',
+    storyFacts: 'Facts that can be used', source: 'source: {source}', storyNoFacts: 'No facts for this week yet. Add photos, notes or use “Today”.',
+    styleLabel: 'Writing style', generate: 'Create the story', regenerate: 'Create it again', editStory: 'Edit text',
+    storyEmpty: 'No facts are selected, so the story stays empty.',
+    style: {
+      simple: 'Simple', reflective: 'Reflective', story: 'Story-like', social: 'Short',
+      simpleOpen: 'This week:', simpleClose: '',
+      reflectiveOpen: 'Looking back at this week:', reflectiveClose: 'What would you like to take with you into next week?',
+      storyOpen: 'The week had its own chapters.', storyClose: 'And the next week is beginning.',
+      socialOpen: 'My week:'
+    },
+    fact: {
+      focus: 'You did {n} focus sessions ({done} completed).', people: 'You spent time or talked with {names}.', best: 'You chose these best moments: {items}.',
+      done: 'You completed: {items}.', feelings: 'Words you chose for your days: {words}.', mira: 'With MIRA you worked on: {topics}.',
+      pauses: 'Pauses you took: {items}.', difficult: 'What was difficult: {text}.', helped: 'What helped: {text}.', completed: 'You completed: {text}.',
+      learned: 'You learned: {text}.', intention: 'For next week: {text}.'
+    },
+    src: { focus: 'Focus Space', people: 'Today, KAFE? and photos', photos: 'your photos', today: 'Today', mira: 'MIRA', notes: 'week notes' },
+    exportTitle: 'Share or export', exportIntro: 'Pick only the sections you want. Nothing is shared automatically.',
+    ex: { title: 'Title', story: 'Story', photos: 'Photos', moments: 'Moments', people: 'People', notes: 'Notes', constellation: 'Constellation' },
+    exportNote: 'Private measurements (mood, sleep, etc.) are never included.', exportCopy: 'Copy text', exportFile: 'Download as page',
+    exportEmpty: 'There’s nothing to copy in the selected sections.', exportCopied: 'Copied. Nothing was sent.',
+    timeline: 'The week, day by day', nextWeek: 'For next week', closingDefault: 'Next week starts with one small step.',
+    photoAlt: 'Photo from {date}', tagsPeople: 'Tags and people', synthetic: 'Synthetic', caption: 'Photo caption', date: 'Day',
+    tags: { school: 'School', friends: 'Friends', family: 'Family', sport: 'Sport', music: 'Music', outside: 'Outside', food: 'Food', creative: 'Creative', rest: 'Rest', other: 'Other' },
+    markBest: 'Best moment', cover: 'Cover', moveUp: 'Move left', moveDown: 'Move right', deletePhoto: 'Delete photo',
+    tooLarge: 'The photo is too large (max 15 MB).', notImage: 'This file is not a photo.', added: '{n} photos added.', deleted: 'Photo deleted.', notesSaved: 'Notes saved.'
+  },
+  de: {
+    prev: 'Vorherige Woche', next: 'Nächste Woche', titleLabel: 'Titel der Woche', titlePlaceholder: 'Gib deiner Woche einen Titel…',
+    private: 'Privat. Nur auf diesem Gerät.', immersive: 'Die Geschichte der Woche ansehen', noConsent: 'Ohne Speichererlaubnis gehen Fotos und Notizen beim Neuladen verloren.',
+    photos: 'Fotos und Erinnerungen', upload: 'Fotos hinzufügen', photoNote: 'Fotos bleiben auf diesem Gerät. Die App erkennt keine Gesichter und leitet nichts aus Fotos ab.',
+    noPhotos: 'Diese Woche noch keine Fotos.', best: 'Beste Momente', bestEmpty: 'Markier ein Foto mit dem Stern als „besten Moment“.',
+    people: 'Menschen, die wichtig waren', peopleEmpty: 'Menschen erscheinen, wenn du sie bei „Heute“, KAFE? oder auf Fotos einträgst.',
+    focus: 'Fokus-Sessions', focusCount: '{n} Sessions, {done} erledigt', constellation: 'Die Konstellation dieser Woche', snapshots: '{n} gespeicherte Momentaufnahmen für diese Woche',
+    notesTitle: 'Notizen der Woche',
+    f: { difficult: 'Was schwierig war', helped: 'Was geholfen hat', completed: 'Etwas, das ich geschafft habe', learned: 'Etwas, das ich gelernt habe', intention: 'Vorsatz für nächste Woche' },
+    ph: { difficult: 'Du kannst es leer lassen…', helped: 'Z. B. ein Spaziergang, ein Gespräch…', completed: 'Z. B. das Schulprojekt', learned: 'Etwas Neues über dich oder die Welt', intention: 'Eine kleine Sache für nächste Woche' },
+    storyTitle: 'MIRA Weekly Story', storyIntro: 'MIRA schreibt einen Rückblick nur aus den Fakten unten — die du selbst eingetragen hast. Entferne jeden Fakt, den du nicht drin haben willst.',
+    storyFacts: 'Fakten, die verwendet werden können', source: 'Quelle: {source}', storyNoFacts: 'Für diese Woche gibt es noch keine Fakten. Füg Fotos oder Notizen hinzu oder nutz „Heute“.',
+    styleLabel: 'Schreibstil', generate: 'Geschichte erstellen', regenerate: 'Neu erstellen', editStory: 'Text bearbeiten',
+    storyEmpty: 'Es ist kein Fakt ausgewählt, deshalb bleibt die Geschichte leer.',
+    style: {
+      simple: 'Einfach', reflective: 'Nachdenklich', story: 'Wie eine Geschichte', social: 'Kurz',
+      simpleOpen: 'Diese Woche:', simpleClose: '',
+      reflectiveOpen: 'Wenn ich auf diese Woche zurückschaue:', reflectiveClose: 'Was möchtest du in die nächste Woche mitnehmen?',
+      storyOpen: 'Die Woche hatte ihre eigenen Kapitel.', storyClose: 'Und die nächste Woche beginnt.',
+      socialOpen: 'Meine Woche:'
+    },
+    fact: {
+      focus: 'Du hast {n} Fokus-Sessions gemacht ({done} erledigt).', people: 'Du hast Zeit mit {names} verbracht oder mit ihnen geredet.', best: 'Diese besten Momente hast du gewählt: {items}.',
+      done: 'Du hast geschafft: {items}.', feelings: 'Wörter, die du für deine Tage gewählt hast: {words}.', mira: 'Mit MIRA hast du an Folgendem gearbeitet: {topics}.',
+      pauses: 'Pausen, die du gemacht hast: {items}.', difficult: 'Schwierig war: {text}.', helped: 'Geholfen hat: {text}.', completed: 'Du hast geschafft: {text}.',
+      learned: 'Du hast gelernt: {text}.', intention: 'Für nächste Woche: {text}.'
+    },
+    src: { focus: 'Focus Space', people: 'Heute, KAFE? und Fotos', photos: 'deine Fotos', today: 'Heute', mira: 'MIRA', notes: 'Notizen der Woche' },
+    exportTitle: 'Teilen oder exportieren', exportIntro: 'Wähl nur die Abschnitte, die du willst. Nichts wird automatisch geteilt.',
+    ex: { title: 'Titel', story: 'Geschichte', photos: 'Fotos', moments: 'Momente', people: 'Menschen', notes: 'Notizen', constellation: 'Konstellation' },
+    exportNote: 'Private Messwerte (Stimmung, Schlaf usw.) werden nie einbezogen.', exportCopy: 'Text kopieren', exportFile: 'Als Seite herunterladen',
+    exportEmpty: 'In den gewählten Abschnitten gibt es nichts zu kopieren.', exportCopied: 'Kopiert. Nichts wurde gesendet.',
+    timeline: 'Die Woche, Tag für Tag', nextWeek: 'Für nächste Woche', closingDefault: 'Die nächste Woche beginnt mit einem kleinen Schritt.',
+    photoAlt: 'Foto vom {date}', tagsPeople: 'Tags und Menschen', synthetic: 'Synthetisch', caption: 'Bildunterschrift', date: 'Tag',
+    tags: { school: 'Schule', friends: 'Freunde', family: 'Familie', sport: 'Sport', music: 'Musik', outside: 'Draußen', food: 'Essen', creative: 'Kreativ', rest: 'Ausruhen', other: 'Anderes' },
+    markBest: 'Bester Moment', cover: 'Titelbild', moveUp: 'Nach links', moveDown: 'Nach rechts', deletePhoto: 'Foto löschen',
+    tooLarge: 'Das Foto ist zu groß (max. 15 MB).', notImage: 'Diese Datei ist kein Foto.', added: '{n} Fotos hinzugefügt.', deleted: 'Foto gelöscht.', notesSaved: 'Notizen gespeichert.'
+  }
+};

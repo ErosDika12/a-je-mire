@@ -1,0 +1,57 @@
+// Focus Space
+export default {
+  sq: {
+    eyebrow: 'Focus Space', title: 'Një detyrë. Një kohëmatës.',
+    subtitle: 'Seancat e ndërprera nuk ndëshkohen. Çdo minutë e fokusuar vlen.',
+    mode: 'Mënyra', homework: 'Detyrë shtëpie', exam: 'Përgatitje për provim',
+    task: 'Detyra aktive', taskPlaceholder: 'Për çfarë po punon?', minutes: 'Kohëzgjatja', custom: 'Tjetër',
+    customMin: 'Minuta', start: 'Fillo', pause: 'Pauzë', resume: 'Vazhdo', stop: 'Mbaro seancën',
+    helpStart: 'Help me start', breakTitle: 'Pushim', breakStart: 'Fillo pushimin 5 minutësh', breakEnd: 'Mbaro pushimin',
+    focusing: 'Duke u fokusuar', paused: 'Në pauzë', onBreak: 'Pushim',
+    distraction: 'Shënim shpërqendrimi', distractionHint: 'Diçka të erdhi në mend? Shkruaje këtu dhe kthehu te detyra.',
+    distractionAdd: 'Shëno', distractions: 'Shënimet e seancës',
+    afterQ: 'Si shkoi seanca?', o: { completed: 'E përfundova', progress: 'Bëra përparim', later: 'Vazhdoj më vonë', stopped: 'U ndal' },
+    after: { completed: 'Bravo — e përfundove.', progress: 'Përparimi ka vlerë, edhe kur është i vogël.', later: 'Në rregull. Detyra të pret.', stopped: 'Ndodh. Nuk është dështim.' },
+    recovered: 'Seanca vazhdoi nga ku e le.', noConsent: 'Pa leje ruajtjeje, seanca humbet nëse rifreskon faqen.',
+    history: 'Seancat e fundit', historyEmpty: 'Seancat e tua shfaqen këtu.', minShort: '{n} min',
+    fricTitle: 'Friction Map', fricIntro: 'Kur shtyn diçka, mund të zgjedhësh pse. Këtu shfaqen vetëm zgjedhjet e tua, pa gjykim.',
+    fricEmpty: 'Asgjë ende. Kur shtyn një detyrë, mund të shënosh arsyen (opsionale).', fricNote: 'Këto janë numërime të zgjedhjeve të tua, jo përshkrim i karakterit tënd.',
+    timeLeft: 'Koha e mbetur'
+  },
+  en: {
+    eyebrow: 'Focus Space', title: 'One task. One timer.',
+    subtitle: 'Stopped sessions are never punished. Every focused minute counts.',
+    mode: 'Mode', homework: 'Homework', exam: 'Exam prep',
+    task: 'Active task', taskPlaceholder: 'What are you working on?', minutes: 'Duration', custom: 'Other',
+    customMin: 'Minutes', start: 'Start', pause: 'Pause', resume: 'Resume', stop: 'End session',
+    helpStart: 'Help me start', breakTitle: 'Break', breakStart: 'Start a 5-minute break', breakEnd: 'End break',
+    focusing: 'Focusing', paused: 'Paused', onBreak: 'Break',
+    distraction: 'Distraction note', distractionHint: 'Something came to mind? Write it here and return to the task.',
+    distractionAdd: 'Note it', distractions: 'Session notes',
+    afterQ: 'How did the session go?', o: { completed: 'Completed', progress: 'Made progress', later: 'Continue later', stopped: 'Stopped' },
+    after: { completed: 'Well done — you finished it.', progress: 'Progress matters, even when it’s small.', later: 'Okay. The task will wait.', stopped: 'It happens. It isn’t a failure.' },
+    recovered: 'The session continued from where you left it.', noConsent: 'Without storage permission, the session is lost if you refresh.',
+    history: 'Recent sessions', historyEmpty: 'Your sessions appear here.', minShort: '{n} min',
+    fricTitle: 'Friction Map', fricIntro: 'When you delay something, you can pick why. Only your own choices show here, without judgement.',
+    fricEmpty: 'Nothing yet. When you delay a task, you can note a reason (optional).', fricNote: 'These are counts of your choices, not a description of your character.',
+    timeLeft: 'Time left'
+  },
+  de: {
+    eyebrow: 'Focus Space', title: 'Eine Aufgabe. Ein Timer.',
+    subtitle: 'Abgebrochene Sessions werden nie bestraft. Jede fokussierte Minute zählt.',
+    mode: 'Modus', homework: 'Hausaufgaben', exam: 'Prüfungsvorbereitung',
+    task: 'Aktive Aufgabe', taskPlaceholder: 'Woran arbeitest du?', minutes: 'Dauer', custom: 'Andere',
+    customMin: 'Minuten', start: 'Starten', pause: 'Pause', resume: 'Weiter', stop: 'Session beenden',
+    helpStart: 'Help me start', breakTitle: 'Pause', breakStart: '5-Minuten-Pause starten', breakEnd: 'Pause beenden',
+    focusing: 'Fokussiert', paused: 'Pausiert', onBreak: 'Pause',
+    distraction: 'Ablenkungsnotiz', distractionHint: 'Ist dir etwas eingefallen? Schreib es hier auf und kehr zur Aufgabe zurück.',
+    distractionAdd: 'Notieren', distractions: 'Notizen der Session',
+    afterQ: 'Wie lief die Session?', o: { completed: 'Erledigt', progress: 'Fortschritt gemacht', later: 'Später weiter', stopped: 'Abgebrochen' },
+    after: { completed: 'Gut gemacht — du hast es geschafft.', progress: 'Fortschritt zählt, auch wenn er klein ist.', later: 'Okay. Die Aufgabe wartet.', stopped: 'Das passiert. Es ist kein Versagen.' },
+    recovered: 'Die Session wurde dort fortgesetzt, wo du aufgehört hast.', noConsent: 'Ohne Speichererlaubnis geht die Session beim Neuladen verloren.',
+    history: 'Letzte Sessions', historyEmpty: 'Deine Sessions erscheinen hier.', minShort: '{n} Min.',
+    fricTitle: 'Friction Map', fricIntro: 'Wenn du etwas verschiebst, kannst du wählen, warum. Hier erscheinen nur deine eigenen Angaben, ohne Wertung.',
+    fricEmpty: 'Noch nichts. Wenn du eine Aufgabe verschiebst, kannst du einen Grund notieren (optional).', fricNote: 'Das sind Zählungen deiner Angaben, keine Beschreibung deines Charakters.',
+    timeLeft: 'Verbleibende Zeit'
+  }
+};

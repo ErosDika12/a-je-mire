@@ -1,6 +1,7 @@
 import { METRICS } from './patterns.js';
 import { toIso, PERSON_COLORS, MODEL_VERSION } from './storage.js';
 import { tList } from './i18n/index.js';
+import { addV3Demo } from './seed3.js';
 
 // PROFIL SINTETIK. Të gjithë numrat këtu i prodhon ky fajll.
 // Asnjë e dhënë e një personi të vërtetë nuk përdoret askund në projekt.
@@ -87,7 +88,7 @@ export function generateProfile(consent, today = new Date(), seed = 20360911) {
     checkins.push(makeCheckin(dayIndex, today, random));
   }
   const relations = tList('seed.relations');
-  return {
+  const profile = {
     ...baseShape(consent),
     mode: 'demo',
     checkins,
@@ -102,6 +103,8 @@ export function generateProfile(consent, today = new Date(), seed = 20360911) {
       { date: toIso(daysBefore(today, 9)), personName: 'Bleroni', activityKey: 'shetitje' }
     ]
   };
+  // v3: Sot, MIRA, Focus, My Week dhe Community — të gjitha sintetike.
+  return addV3Demo(profile, today);
 }
 
 /** Profil privat bosh: asnjë e dhënë sintetike, baseline-i ndërtohet nga zero. */
